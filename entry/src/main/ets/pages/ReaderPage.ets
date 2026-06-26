@@ -248,7 +248,7 @@ struct ReaderPage {
             .fontColor(this.getThemeByKey(this.readerSettings.theme)?.fontColor || AppTheme.textPrimary)
             .lineHeight(this.readerSettings.fontSize * this.readerSettings.lineHeight)
             .letterSpacing(this.readerSettings.letterSpacing * this.readerSettings.fontSize)
-            .textAlign(TextAlign.Justify)
+            .textAlign(TextAlign.JUSTIFY)
             .width('100%')
             .padding({ left: 24, right: 24, top: 0, bottom: 120 })
         }

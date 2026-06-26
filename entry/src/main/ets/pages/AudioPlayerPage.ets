@@ -232,7 +232,7 @@ struct AudioPlayerPage {
         }
         .width(40).height(40)
         .justifyContent(FlexAlign.Center)
-        .alignItems(VerticalAlign.Center)
+        .alignItems(HorizontalAlign.Center)
         .onClick(() => { this.goBackToReader() })
 
         // 中间标题
@@ -262,7 +262,7 @@ struct AudioPlayerPage {
         }
         .width(40).height(40)
         .justifyContent(FlexAlign.Center)
-        .alignItems(VerticalAlign.Center)
+        .alignItems(HorizontalAlign.Center)
         .onClick(() => { this.goBackToShelf() })
       }
       .width('100%')
@@ -303,7 +303,7 @@ struct AudioPlayerPage {
             .fontColor(AppTheme.textTertiary)
             .margin({ left: 6 })
         }
-        .alignItems(VerticalAlign.Center)
+        .alignItems(HorizontalAlign.Center)
         .margin({ bottom: 12 })
 
         // 正文
@@ -402,7 +402,7 @@ struct AudioPlayerPage {
         }
         .width(44).height(44)
         .justifyContent(FlexAlign.Center)
-        .alignItems(VerticalAlign.Center)
+        .alignItems(HorizontalAlign.Center)
         .onClick(() => {})
 
         // 上一章
@@ -412,7 +412,7 @@ struct AudioPlayerPage {
         }
         .width(44).height(44)
         .justifyContent(FlexAlign.Center)
-        .alignItems(VerticalAlign.Center)
+        .alignItems(HorizontalAlign.Center)
         .onClick(() => { this.goPrevChapter() })
 
         // 播放/暂停
@@ -429,7 +429,7 @@ struct AudioPlayerPage {
         .borderRadius(32)
         .backgroundColor(AppTheme.primary)
         .justifyContent(FlexAlign.Center)
-        .alignItems(VerticalAlign.Center)
+        .alignItems(HorizontalAlign.Center)
         .shadow({ radius: 20, color: 'rgba(139,105,20,0.35)', offsetY: 4 })
         .onClick(() => { this.togglePlayPause() })
 
@@ -440,7 +440,7 @@ struct AudioPlayerPage {
         }
         .width(44).height(44)
         .justifyContent(FlexAlign.Center)
-        .alignItems(VerticalAlign.Center)
+        .alignItems(HorizontalAlign.Center)
         .onClick(() => { this.goNextChapter() })
 
         // 前进 15s
@@ -450,7 +450,7 @@ struct AudioPlayerPage {
         }
         .width(44).height(44)
         .justifyContent(FlexAlign.Center)
-        .alignItems(VerticalAlign.Center)
+        .alignItems(HorizontalAlign.Center)
         .onClick(() => {})
       }
       .width('100%')
