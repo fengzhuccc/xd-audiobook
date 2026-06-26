@@ -2,6 +2,9 @@ import { fileIo } from '@kit.CoreFileKit';
 import { util } from '@kit.ArkTS';
 import { LogUtil } from '../common/utils/LogUtil';
 import { FileImportService } from './FileImportService';
+import { EpubParser } from './EpubParser';
+import { TxtParser } from './TxtParser';
+import { MobiParser } from './MobiParser';
 
 /** 书籍基本信息 */
 export interface ParsedBookInfo {
@@ -118,8 +121,3 @@ export class BookParserFactory {
     throw new Error(`不支持的格式: ${ext}`);
   }
 }
-
-// 导入各格式解析器
-import { EpubParser } from './EpubParser';
-import { TxtParser } from './TxtParser';
-import { MobiParser } from './MobiParser';

@@ -1,6 +1,5 @@
-import { zlib } from '@kit.ArkTS';
+import { zlib } from '@kit.BasicServicesKit';
 import { fileIo } from '@kit.CoreFileKit';
-import { util } from '@kit.ArkTS';
 import {
   IBookParserHandler,
   ParsedBookInfo,
@@ -16,10 +15,6 @@ interface ManifestItem {
   id: string;
   href: string;
   mediaType: string;
-}
-
-interface DecompressOptions {
-  directory: string;
 }
 
 export class EpubParser implements IBookParserHandler {
@@ -63,10 +58,6 @@ export class EpubParser implements IBookParserHandler {
     // 使用 zlib 解压 EPUB（本质是 ZIP）
     const options: zlib.Options = {
       directory: extractDir,
-      flushMode: zlib.FlushMode.FINISH,
-      level: zlib.CompressLevel.DEFAULT_COMPRESSION,
-      memLevel: zlib.CompressMemLevel.DEFAULT_MEMLEVEL,
-      strategy: zlib.CompressStrategy.DEFAULT_STRATEGY,
     };
     await zlib.decompressFile(filePath, options);
     LogUtil.info(`EPUB extracted to: ${extractDir}`);

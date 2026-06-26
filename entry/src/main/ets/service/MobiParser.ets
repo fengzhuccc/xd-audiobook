@@ -15,6 +15,12 @@ interface PdbRecord {
   length: number;
 }
 
+/** MOBI 章节内容 */
+interface MobiChapter {
+  title: string;
+  content: string;
+}
+
 export class MobiParser implements IBookParserHandler {
   private bookInfo: ParsedBookInfo;
   private spineItems: ParsedSpineItem[];
@@ -201,12 +207,12 @@ export class MobiParser implements IBookParserHandler {
   }
 
   /** 按 HTML 标题标签分割 MOBI 章节 */
-  private static splitMobiChapters(html: string): { title: string; content: string }[] {
+  private static splitMobiChapters(html: string): MobiChapter[] {
     // 匹配 <h1>-<h3> 或 <mbp:pagebreak/> 作为章节分隔
     const splitRegex = /<(?:h[1-3][^>]*>|mbp:pagebreak\s*\/?>)/gi;
     const titleRegex = /<h[1-3][^>]*>([^<]+)<\/h[1-3]>/i;
 
-    const chapters: { title: string; content: string }[] = [];
+    const chapters: MobiChapter[] = [];
     const positions: number[] = [0];
     let match: RegExpExecArray | null;
     while ((match = splitRegex.exec(html)) !== null) {
@@ -222,13 +228,15 @@ export class MobiParser implements IBookParserHandler {
         : `第 ${i + 1} 节`;
       const content = htmlToPlainText(chunk);
       if (content.trim().length > 0) {
-        chapters.push({ title, content });
+        const chapter: MobiChapter = { title, content };
+        chapters.push(chapter);
       }
     }
 
     if (chapters.length === 0) {
       // 无法分章，整体作为一个章节
-      chapters.push({ title: '全文', content: htmlToPlainText(html) });
+      const wholeChapter: MobiChapter = { title: '全文', content: htmlToPlainText(html) };
+      chapters.push(wholeChapter);
     }
 
     return chapters;

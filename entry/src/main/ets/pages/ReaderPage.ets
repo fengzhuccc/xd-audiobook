@@ -7,7 +7,7 @@ import { ReaderSettings } from '../common/model/ReaderSettings';
 import { PreferencesService } from '../service/PreferencesService';
 import { BookDatabase } from '../service/BookDatabase';
 import { LogUtil } from '../common/utils/LogUtil';
-import { BookParserFactory, IBookParserHandler, htmlToPlainText } from '../service/BookParser';
+import { BookParserFactory, IBookParserHandler, ParsedCatalogItem, htmlToPlainText } from '../service/BookParser';
 
 @Entry
 @Component
@@ -345,7 +345,7 @@ struct ReaderPage {
             .padding({ left: 20, right: 20, top: 20, bottom: 16 })
 
             List({ space: 4 }) {
-              ForEach(this.parserHandler?.getCatalogList() || [], (item: { href: string; title: string; level: number }, index: number) => {
+              ForEach(this.parserHandler?.getCatalogList() || [], (item: ParsedCatalogItem, index: number) => {
                 ListItem() {
                   Text(item.title)
                     .fontSize(14)
@@ -354,7 +354,7 @@ struct ReaderPage {
                     .width('100%')
                     .onClick(() => { this.jumpToChapter(index) })
                 }
-              }, (item: { href: string; title: string; level: number }, index: number) => `${index}_${item.href}`)
+              }, (item: ParsedCatalogItem, index: number) => `${index}_${item.href}`)
             }
             .layoutWeight(1)
             .scrollBar(BarState.Off)
