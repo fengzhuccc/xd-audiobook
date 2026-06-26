@@ -232,7 +232,7 @@ struct AudioPlayerPage {
         }
         .width(40).height(40)
         .justifyContent(FlexAlign.Center)
-        .alignItems(HorizontalAlign.Center)
+        .alignItems(VerticalAlign.Center)
         .onClick(() => { this.goBackToReader() })
 
         // 中间标题
@@ -262,7 +262,7 @@ struct AudioPlayerPage {
         }
         .width(40).height(40)
         .justifyContent(FlexAlign.Center)
-        .alignItems(HorizontalAlign.Center)
+        .alignItems(VerticalAlign.Center)
         .onClick(() => { this.goBackToShelf() })
       }
       .width('100%')
@@ -303,7 +303,7 @@ struct AudioPlayerPage {
             .fontColor(AppTheme.textTertiary)
             .margin({ left: 6 })
         }
-        .alignItems(HorizontalAlign.Center)
+        .alignItems(VerticalAlign.Center)
         .margin({ bottom: 12 })
 
         // 正文
