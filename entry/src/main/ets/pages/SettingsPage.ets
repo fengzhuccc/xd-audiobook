@@ -52,7 +52,7 @@ export struct SettingsPage {
   }
   
   private async loadSettings(): Promise<void> {
-    const prefService = AppStorage.get<PreferencesService>('prefService');
+    const prefService = AppStorage.get('prefService') as PreferencesService;
     if (!prefService) return;
     
     try {
@@ -73,7 +73,7 @@ export struct SettingsPage {
   }
   
   private async saveReaderSettings(): Promise<void> {
-    const prefService = AppStorage.get<PreferencesService>('prefService');
+    const prefService = AppStorage.get('prefService') as PreferencesService;
     if (!prefService) return;
     
     const settings: ReaderSettings = {
@@ -90,7 +90,7 @@ export struct SettingsPage {
   }
   
   private async saveTtsSettings(): Promise<void> {
-    const prefService = AppStorage.get<PreferencesService>('prefService');
+    const prefService = AppStorage.get('prefService') as PreferencesService;
     if (!prefService) return;
     
     const settings: TtsSettings = {

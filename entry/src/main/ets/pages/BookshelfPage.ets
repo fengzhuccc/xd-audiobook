@@ -19,7 +19,7 @@ export struct BookshelfPage {
   }
 
   private loadBooks(): void {
-    const bookDb = AppStorage.get<BookDatabase>('bookDb');
+    const bookDb = AppStorage.get('bookDb') as BookDatabase;
     if (!bookDb) return;
 
     bookDb.getAllBooks().then((list) => {
@@ -168,7 +168,7 @@ export struct BookshelfPage {
               .backgroundColor(AppTheme.surfaceCard)
               .borderRadius(12)
               .shadow({ radius: 8, color: 'rgba(61,53,42,0.05)', offsetY: 2 })
-              .onClick(() => { this.openBook(this.recentBook) })
+              .onClick(() => { this.openBook(this.recentBook as BookInfo) })
             }
             .width('100%')
             .padding({ left: 20, right: 20 })

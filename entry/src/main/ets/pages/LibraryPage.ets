@@ -20,7 +20,7 @@ export struct LibraryPage {
   }
 
   private loadBooks(): void {
-    const bookDb = AppStorage.get<BookDatabase>('bookDb');
+    const bookDb = AppStorage.get('bookDb') as BookDatabase;
     if (!bookDb) return;
     bookDb.getAllBooks().then((list) => {
       this.books = list;
@@ -38,7 +38,7 @@ export struct LibraryPage {
         return;
       }
 
-      const bookDb = AppStorage.get<BookDatabase>('bookDb');
+      const bookDb = AppStorage.get('bookDb') as BookDatabase;
       if (!bookDb) {
         this.isImporting = false;
         return;
@@ -61,7 +61,7 @@ export struct LibraryPage {
   }
 
   private async deleteBook(book: BookInfo): Promise<void> {
-    const bookDb = AppStorage.get<BookDatabase>('bookDb');
+    const bookDb = AppStorage.get('bookDb') as BookDatabase;
     if (!bookDb) return;
 
     try {

@@ -61,7 +61,7 @@ struct ReaderPage {
   }
 
   private async loadSettings(): Promise<void> {
-    const prefService = AppStorage.get<PreferencesService>('prefService');
+    const prefService = AppStorage.get('prefService') as PreferencesService;
     if (prefService) {
       this.readerSettings = await prefService.getReaderSettings();
     }
@@ -77,7 +77,7 @@ struct ReaderPage {
       this.bookTitle = bookInfo.bookTitle;
 
       // 获取已保存的进度
-      const bookDb = AppStorage.get<BookDatabase>('bookDb');
+      const bookDb = AppStorage.get('bookDb') as BookDatabase;
       let savedSpineIndex = 0;
       let savedDomPos = '';
       if (bookDb && this.bookId) {
@@ -127,7 +127,7 @@ struct ReaderPage {
   private saveProgress(): void {
     if (!this.bookId) return;
     try {
-      const bookDb = AppStorage.get<BookDatabase>('bookDb');
+      const bookDb = AppStorage.get('bookDb') as BookDatabase;
       if (bookDb) {
         const progress: BookProgress = {
           bookId: this.bookId,

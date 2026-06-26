@@ -6,7 +6,20 @@ import { ReaderSettings } from '../common/model/ReaderSettings';
 import { TtsSettings } from '../common/model/TtsSettings';
 import { LogUtil } from '../common/utils/LogUtil';
 
-const PREF_KEYS = {
+interface PrefKeys {
+  FONT_SIZE: string;
+  LINE_HEIGHT: string;
+  LETTER_SPACING: string;
+  FLIP_MODE: string;
+  READER_THEME: string;
+  FONT_FAMILY: string;
+  TTS_SPEED: string;
+  TTS_AUTO_NEXT: string;
+  TTS_HIGHLIGHT: string;
+  LAST_BOOK_ID: string;
+}
+
+const PREF_KEYS: PrefKeys = {
   FONT_SIZE: 'reader_fontSize',
   LINE_HEIGHT: 'reader_lineHeight',
   LETTER_SPACING: 'reader_letterSpacing',
@@ -43,7 +56,7 @@ export class PreferencesService {
 
   // ── 阅读设置 ──
   async getReaderSettings(): Promise<ReaderSettings> {
-    if (!this.prefInstance) return { ...READER_DEFAULTS } as ReaderSettings;
+    if (!this.prefInstance) return this.buildDefaultReaderSettings();
     try {
       const settings: ReaderSettings = {
         fontSize: (await this.prefInstance.get(PREF_KEYS.FONT_SIZE, READER_DEFAULTS.FONT_SIZE)) as number,
@@ -56,8 +69,19 @@ export class PreferencesService {
       return settings;
     } catch (err) {
       LogUtil.error(`Failed to get reader settings: ${JSON.stringify(err)}`);
-      return { ...READER_DEFAULTS } as ReaderSettings;
+      return this.buildDefaultReaderSettings();
     }
+  }
+
+  private buildDefaultReaderSettings(): ReaderSettings {
+    return {
+      fontSize: READER_DEFAULTS.FONT_SIZE,
+      lineHeight: READER_DEFAULTS.LINE_HEIGHT,
+      letterSpacing: READER_DEFAULTS.LETTER_SPACING,
+      flipMode: READER_DEFAULTS.FLIP_MODE as 'click' | 'slide',
+      theme: READER_DEFAULTS.THEME as 'warm' | 'white' | 'night',
+      fontFamily: READER_DEFAULTS.FONT_FAMILY as 'serif' | 'sans' | 'kai',
+    };
   }
 
   async saveReaderSettings(settings: ReaderSettings): Promise<void> {
@@ -78,7 +102,7 @@ export class PreferencesService {
 
   // ── 朗读设置 ──
   async getTtsSettings(): Promise<TtsSettings> {
-    if (!this.prefInstance) return { ...TTS_DEFAULTS } as TtsSettings;
+    if (!this.prefInstance) return this.buildDefaultTtsSettings();
     try {
       const settings: TtsSettings = {
         speed: (await this.prefInstance.get(PREF_KEYS.TTS_SPEED, TTS_DEFAULTS.SPEED)) as number,
@@ -88,8 +112,16 @@ export class PreferencesService {
       return settings;
     } catch (err) {
       LogUtil.error(`Failed to get TTS settings: ${JSON.stringify(err)}`);
-      return { ...TTS_DEFAULTS } as TtsSettings;
+      return this.buildDefaultTtsSettings();
     }
+  }
+
+  private buildDefaultTtsSettings(): TtsSettings {
+    return {
+      speed: TTS_DEFAULTS.SPEED,
+      autoNextChapter: TTS_DEFAULTS.AUTO_NEXT_CHAPTER,
+      highlightEnabled: TTS_DEFAULTS.HIGHLIGHT_ENABLED,
+    };
   }
 
   async saveTtsSettings(settings: TtsSettings): Promise<void> {
