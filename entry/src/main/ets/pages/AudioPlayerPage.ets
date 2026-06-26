@@ -229,9 +229,8 @@ struct AudioPlayerPage {
             }
 
             // 待读文字（正常）
-            const nextStart = this.currentSentenceIndex + 1;
-            if (nextStart < this.sentences.length) {
-              Text(this.sentences.slice(nextStart, nextStart + 2).join('。') + '。')
+            if (this.currentSentenceIndex + 1 < this.sentences.length) {
+              Text(this.sentences.slice(this.currentSentenceIndex + 1, this.currentSentenceIndex + 3).join('。') + '。')
                 .fontSize(14)
                 .fontColor(AppTheme.textSecondary)
                 .maxLines(3)

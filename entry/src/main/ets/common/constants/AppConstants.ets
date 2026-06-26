@@ -8,8 +8,6 @@ export const COVERS_DIR = 'covers';
 export const SUPPORTED_FORMATS = ['epub', 'txt', 'mobi', 'azw', 'azw3'];
 
 // Tab 索引
-export const TAB_INDEX = {
-  BOOKSHELF: 0,
-  LIBRARY: 1,
-  SETTINGS: 2
-} as const;
+export const TAB_INDEX_BOOKSHELF = 0;
+export const TAB_INDEX_LIBRARY = 1;
+export const TAB_INDEX_SETTINGS = 2;
