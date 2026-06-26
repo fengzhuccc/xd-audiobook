@@ -75,8 +75,11 @@ export class FileImportService {
    * 从文件名提取格式后缀
    */
   static getFormatFromFileName(fileName: string): string {
-    const ext = fileName.split('.').pop()?.toLowerCase() || '';
-    return ext;
+    const dotIndex = fileName.lastIndexOf('.');
+    if (dotIndex <= 0 || dotIndex === fileName.length - 1) {
+      return '';
+    }
+    return fileName.substring(dotIndex + 1).toLowerCase();
   }
 
   /**

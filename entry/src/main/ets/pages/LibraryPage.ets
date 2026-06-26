@@ -14,7 +14,7 @@ export struct LibraryPage {
   @State books: BookInfo[] = [];
   @State isImporting: boolean = false;
   @State activeFilter: string = '全部';
-  private filters: string[] = ['全部', 'EPUB', 'TXT', 'MOBI'];
+  private filters: string[] = ['全部', 'EPUB', 'TXT', 'MOBI', 'AZW', 'AZW3'];
 
   aboutToAppear(): void {
     this.loadBooks();
@@ -66,20 +66,24 @@ export struct LibraryPage {
     if (!bookDb) return;
 
     try {
-      // 从数据库删除
-      await bookDb.deleteBook(book.id!);
-      // 删除沙箱文件
+      // 先删除沙箱文件，再删数据库，避免孤儿文件
       FileImportService.deleteBookFile(book.filePath);
-      promptAction.showToast({ message: `《${book.title}》已删除` });
+      const deleted = await bookDb.deleteBook(book.id!);
+      if (deleted > 0) {
+        promptAction.showToast({ message: `《${book.title}》已删除` });
+      } else {
+        promptAction.showToast({ message: '删除失败，书籍未找到' });
+      }
       this.loadBooks();
     } catch (err) {
       LogUtil.error(`Delete error: ${JSON.stringify(err)}`);
+      promptAction.showToast({ message: '删除失败' });
     }
   }
 
   private filteredBooks(): BookInfo[] {
     if (this.activeFilter === '全部') return this.books;
-    return this.books.filter((b) => b.fileFormat.toUpperCase() === this.activeFilter);
+    return this.books.filter((b) => b.fileFormat && b.fileFormat.toUpperCase() === this.activeFilter);
   }
 
   private getFormatBadgeColor(format: string): string {

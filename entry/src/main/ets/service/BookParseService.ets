@@ -76,6 +76,10 @@ export class BookParseService {
 
       // 写入数据库
       const id = await this.bookDb.insertBook(book);
+      if (id <= 0) {
+        LogUtil.error(`Failed to insert book into database, id=${id}`);
+        return null;
+      }
       book.id = id;
 
       LogUtil.info(`Book imported: [${id}] ${book.title} by ${book.author}`);

@@ -17,22 +17,21 @@ export default class EntryAbility extends UIAbility {
     }
     hilog.info(DOMAIN, TAG, '%{public}s', 'Ability onCreate');
 
-    // Initialize Preferences (reader settings & TTS settings)
+    // 先注册到 AppStorageV2（同步），确保页面 aboutToAppear 时能拿到实例
     const prefService = PreferencesService.getInstance();
+    AppStorageV2.connect(PreferencesService, 'prefService', () => prefService);
     prefService.init(this.context).then(() => {
-      AppStorageV2.connect(PreferencesService, 'prefService', () => prefService);
-      LogUtil.info(`${TAG}: PreferencesService initialized`);
+      LogUtil.info('PreferencesService initialized');
     }).catch((err: Error) => {
-      LogUtil.error(`${TAG}: PreferencesService init failed: ${err.message}`);
+      LogUtil.error(`PreferencesService init failed: ${err.message}`);
     });
 
-    // Initialize Book Database
     const bookDb = BookDatabase.getInstance();
+    AppStorageV2.connect(BookDatabase, 'bookDb', () => bookDb);
     bookDb.init(this.context).then(() => {
-      AppStorageV2.connect(BookDatabase, 'bookDb', () => bookDb);
-      LogUtil.info(`${TAG}: BookDatabase initialized`);
+      LogUtil.info('BookDatabase initialized');
     }).catch((err: Error) => {
-      LogUtil.error(`${TAG}: BookDatabase init failed: ${err.message}`);
+      LogUtil.error(`BookDatabase init failed: ${err.message}`);
     });
   }
 

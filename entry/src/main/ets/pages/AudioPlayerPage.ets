@@ -1,9 +1,10 @@
-import { router } from '@kit.ArkUI';
+import { router, AppStorageV2 } from '@kit.ArkUI';
 import { bookParser } from '@kit.ReaderKit';
 import { common } from '@kit.AbilityKit';
 import { AppTheme } from '../common/theme/AppTheme';
 import { TtsService, TtsState } from '../service/TtsService';
 import { BookDatabase } from '../service/BookDatabase';
+import { BookProgress } from '../common/model/BookProgress';
 import { LogUtil } from '../common/utils/LogUtil';
 import { BusinessError } from '@kit.BasicServicesKit';
 
@@ -26,7 +27,7 @@ struct AudioPlayerPage {
 
   // 定时关闭
   @State timerMinutes: number = 0;
-  private timerSecondsLeft: number = 0;
+  @State timerSecondsLeft: number = 0;
   private timerHandle: number = -1;
 
   private ttsService: TtsService = new TtsService();
@@ -40,11 +41,16 @@ struct AudioPlayerPage {
       this.bookTitle = params.bookTitle as string;
       this.currentSpineIndex = params.currentSpineIndex as number;
     }
+    if (!this.filePath) {
+      router.back();
+      return;
+    }
     this.initAudioPlayer();
   }
 
   aboutToDisappear(): void {
     this.clearTimer();
+    this.saveAudioProgress();
     this.ttsService.release();
     LogUtil.info('AudioPlayerPage destroyed');
   }
@@ -61,17 +67,7 @@ struct AudioPlayerPage {
       this.currentChapter = this.getChapterTitle(spineList, this.currentSpineIndex);
 
       // 获取当前章节纯文本用于高亮展示
-      const htmlContent = await handler.getSpineItemContent(this.currentSpineIndex);
-      this.plainTextContent = htmlContent
-        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-        .replace(/<[^>]+>/g, '')
-        .replace(/&nbsp;/g, ' ')
-        .replace(/\n{2,}/g, '\n')
-        .trim();
-
-      // 分句
-      this.sentences = this.plainTextContent.split(/[。！？\n]/g).filter((s) => s.trim().length > 0);
+      await this.loadChapterContent();
 
       // 初始化并开始朗读
       await this.ttsService.init(context, bookInfo.bookTitle, bookInfo.bookCreator || '');
@@ -84,8 +80,32 @@ struct AudioPlayerPage {
     }
   }
 
+  private async loadChapterContent(): Promise<void> {
+    if (!this.bookHandler) return;
+    try {
+      const htmlContent = await this.bookHandler.getSpineItemContent(this.currentSpineIndex);
+      if (!htmlContent) {
+        this.plainTextContent = '';
+        this.sentences = [];
+        return;
+      }
+      this.plainTextContent = htmlContent
+        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+        .replace(/<[^>]+>/g, '')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/\n{2,}/g, '\n')
+        .trim();
+
+      this.sentences = this.plainTextContent.split(/[。！？\n]/g).filter((s) => s.trim().length > 0);
+      this.currentSentenceIndex = 0;
+    } catch (err) {
+      LogUtil.error(`Failed to load chapter content: ${JSON.stringify(err)}`);
+    }
+  }
+
   private getChapterTitle(spineList: bookParser.SpineItem[], index: number): string {
-    if (index < spineList.length) {
+    if (index >= 0 && index < spineList.length) {
       const href = spineList[index].href;
       return href?.split('/').pop()?.replace(/\.\w+$/, '') || `第${index + 1}章`;
     }
@@ -99,19 +119,55 @@ struct AudioPlayerPage {
     } else if (this.ttsState === 'paused') {
       this.ttsService.resume();
       this.ttsState = 'playing';
+    } else {
+      // idle 或 stopped 状态，重新开始朗读
+      if (this.bookHandler) {
+        this.ttsService.startReading(this.bookHandler, this.currentSpineIndex);
+        this.ttsState = this.ttsService.getState();
+      }
     }
   }
 
   private goPrevChapter(): void {
-    this.ttsService.playPrevChapter();
-    this.currentSpineIndex = this.ttsService.getCurrentSpineIndex();
-    this.ttsState = this.ttsService.getState();
+    if (this.currentSpineIndex <= 0) return;
+    this.currentSpineIndex--;
+    this.currentChapter = this.getChapterTitle(
+      this.bookHandler?.getSpineList() || [], this.currentSpineIndex);
+    this.loadChapterContent();
+    if (this.bookHandler) {
+      this.ttsService.startReading(this.bookHandler, this.currentSpineIndex);
+      this.ttsState = this.ttsService.getState();
+    }
   }
 
   private goNextChapter(): void {
-    this.ttsService.playNextChapter();
-    this.currentSpineIndex = this.ttsService.getCurrentSpineIndex();
-    this.ttsState = this.ttsService.getState();
+    if (this.currentSpineIndex >= this.totalChapters - 1) return;
+    this.currentSpineIndex++;
+    this.currentChapter = this.getChapterTitle(
+      this.bookHandler?.getSpineList() || [], this.currentSpineIndex);
+    this.loadChapterContent();
+    if (this.bookHandler) {
+      this.ttsService.startReading(this.bookHandler, this.currentSpineIndex);
+      this.ttsState = this.ttsService.getState();
+    }
+  }
+
+  private saveAudioProgress(): void {
+    if (!this.bookId) return;
+    try {
+      const bookDb = AppStorageV2.connect(BookDatabase, 'bookDb') as BookDatabase;
+      if (bookDb) {
+        const progress: BookProgress = {
+          bookId: this.bookId,
+          spineIndex: this.currentSpineIndex,
+          domPos: '',
+          updateTime: Date.now(),
+        };
+        bookDb.saveOrUpdateProgress(progress);
+      }
+    } catch (err) {
+      LogUtil.error(`Failed to save audio progress: ${JSON.stringify(err)}`);
+    }
   }
 
   private goBackToReader(): void {
@@ -269,7 +325,9 @@ struct AudioPlayerPage {
               .height(4)
               .borderRadius(2)
               .backgroundColor(AppTheme.primary)
-              .width(`${((this.currentSpineIndex + 1) / Math.max(this.totalChapters, 1)) * 100}%`)
+              .width(this.totalChapters > 0 ?
+                `${Math.min(100, ((this.currentSpineIndex + 1) / this.totalChapters) * 100)}%`
+                : '0%')
           }
           .width('100%')
           .margin({ bottom: 32 })

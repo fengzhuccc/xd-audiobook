@@ -167,6 +167,16 @@ export class BookDatabase {
 
   async deleteBook(id: number): Promise<number> {
     if (!this.store) return 0;
+    // 先删除关联的进度和书签（SQLite 默认不开启外键级联）
+    const progressPred = new relationalStore.RdbPredicates('reading_progress');
+    progressPred.equalTo('book_id', id);
+    await this.store.delete(progressPred);
+
+    const bookmarkPred = new relationalStore.RdbPredicates('bookmarks');
+    bookmarkPred.equalTo('book_id', id);
+    await this.store.delete(bookmarkPred);
+
+    // 再删除书籍本身
     const predicates = new relationalStore.RdbPredicates('books');
     predicates.equalTo('id', id);
     return await this.store.delete(predicates);
@@ -215,32 +225,34 @@ export class BookDatabase {
 
   async saveOrUpdateProgress(progress: BookProgress): Promise<void> {
     if (!this.store) return;
-    // Check if progress exists for this book
     const predicates = new relationalStore.RdbPredicates('reading_progress');
     predicates.equalTo('book_id', progress.bookId);
     const resultSet = await this.store.query(predicates, ['id']);
-    if (resultSet.goToFirstRow()) {
-      // Update existing
-      const existingId = resultSet.getLong(resultSet.getColumnIndex('id'));
-      const valueBucket: relationalStore.ValuesBucket = {
-        spine_index: progress.spineIndex,
-        dom_pos: progress.domPos,
-        update_time: progress.updateTime,
-      };
-      const updatePred = new relationalStore.RdbPredicates('reading_progress');
-      updatePred.equalTo('id', existingId);
-      await this.store.update(valueBucket, updatePred);
-    } else {
-      // Insert new
-      const valueBucket: relationalStore.ValuesBucket = {
-        book_id: progress.bookId,
-        spine_index: progress.spineIndex,
-        dom_pos: progress.domPos,
-        update_time: progress.updateTime,
-      };
-      await this.store.insert('reading_progress', valueBucket);
+    try {
+      if (resultSet.goToFirstRow()) {
+        // Update existing
+        const existingId = resultSet.getLong(resultSet.getColumnIndex('id'));
+        const valueBucket: relationalStore.ValuesBucket = {
+          spine_index: progress.spineIndex,
+          dom_pos: progress.domPos,
+          update_time: progress.updateTime,
+        };
+        const updatePred = new relationalStore.RdbPredicates('reading_progress');
+        updatePred.equalTo('id', existingId);
+        await this.store.update(valueBucket, updatePred);
+      } else {
+        // Insert new
+        const valueBucket: relationalStore.ValuesBucket = {
+          book_id: progress.bookId,
+          spine_index: progress.spineIndex,
+          dom_pos: progress.domPos,
+          update_time: progress.updateTime,
+        };
+        await this.store.insert('reading_progress', valueBucket);
+      }
+    } finally {
+      resultSet.close();
     }
-    resultSet.close();
   }
 
   async getProgressByBookId(bookId: number): Promise<BookProgress | null> {
@@ -306,10 +318,8 @@ export class BookDatabase {
   }
 
   destroy(): void {
-    if (this.store) {
-      this.store.close();
-      this.store = null;
-      LogUtil.info('BookDatabase destroyed');
-    }
+    // RdbStore 没有 close() 方法，仅清理引用让 GC 回收
+    this.store = null;
+    LogUtil.info('BookDatabase destroyed');
   }
 }

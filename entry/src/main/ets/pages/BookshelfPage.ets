@@ -2,9 +2,8 @@ import { router, AppStorageV2 } from '@kit.ArkUI';
 import { AppTheme } from '../common/theme/AppTheme';
 import { BookInfo } from '../common/model/BookInfo';
 import { BookProgress } from '../common/model/BookProgress';
-import { BOOKSHELF_COLUMNS } from '../common/constants/ReaderConstants';
-import { FormatUtil } from '../common/utils/FormatUtil';
 import { BookDatabase } from '../service/BookDatabase';
+import { LogUtil } from '../common/utils/LogUtil';
 
 @Component
 export struct BookshelfPage {
@@ -31,10 +30,22 @@ export struct BookshelfPage {
           this.recentBook = bookWithProgress;
           bookDb.getProgressByBookId(bookWithProgress.id!).then((progress: BookProgress | null) => {
             this.recentProgress = progress;
+          }).catch((err: Error) => {
+            LogUtil.error(`Failed to load progress: ${err.message}`);
           });
         }
       }
+    }).catch((err: Error) => {
+      LogUtil.error(`Failed to load books: ${err.message}`);
     });
+  }
+
+  private filteredBooks(): BookInfo[] {
+    if (!this.searchQuery.trim()) return this.books;
+    const query = this.searchQuery.trim().toLowerCase();
+    return this.books.filter((b: BookInfo) =>
+      b.title.toLowerCase().includes(query) || b.author.toLowerCase().includes(query)
+    );
   }
 
   private openBook(book: BookInfo): void {
@@ -136,7 +147,7 @@ export struct BookshelfPage {
                       .borderRadius(2)
                       .backgroundColor(AppTheme.primary)
                       .width(this.recentProgress ?
-                        `${(this.recentProgress.spineIndex / Math.max((this.recentBook as BookInfo).totalSpines || 1, 1)) * 100}%`
+                        `${Math.min(100, (this.recentProgress.spineIndex / Math.max((this.recentBook as BookInfo).totalSpines || 1, 1)) * 100)}%`
                         : '0%')
                   }
                   .width('100%')
@@ -181,7 +192,7 @@ export struct BookshelfPage {
               .fontSize(16)
               .fontWeight(FontWeight.Medium)
               .fontColor(AppTheme.textPrimary)
-            Text(`共 ${this.books.length} 本`)
+            Text(`共 ${this.filteredBooks().length} 本`)
               .fontSize(13)
               .fontColor(AppTheme.textTertiary)
               .margin({ left: 8 })
@@ -191,7 +202,7 @@ export struct BookshelfPage {
           .margin({ bottom: 16 })
 
           // 书架网格
-          if (this.books.length === 0) {
+          if (this.filteredBooks().length === 0) {
             Column() {
               Text('书架空空如也')
                 .fontSize(15)
@@ -207,7 +218,7 @@ export struct BookshelfPage {
             .justifyContent(FlexAlign.Center)
           } else {
             Flex({ wrap: FlexWrap.Wrap, justifyContent: FlexAlign.Start }) {
-              ForEach(this.books, (book: BookInfo) => {
+              ForEach(this.filteredBooks(), (book: BookInfo) => {
                 Column() {
                   // 封面
                   Stack() {

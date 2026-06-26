@@ -3,7 +3,6 @@ import { bookParser, readerCore, ReadPageComponent } from '@kit.ReaderKit';
 import { common } from '@kit.AbilityKit';
 import { AppTheme } from '../common/theme/AppTheme';
 import { READER_THEMES, ReaderTheme, createDefaultReaderSettings } from '../common/constants/ReaderConstants';
-import { BookInfo } from '../common/model/BookInfo';
 import { BookProgress } from '../common/model/BookProgress';
 import { ReaderSettings } from '../common/model/ReaderSettings';
 import { PreferencesService } from '../service/PreferencesService';
@@ -21,8 +20,9 @@ struct ReaderPage {
 
   // 阅读器状态
   @State showToolbar: boolean = true;
-  @State currentPage: number = 0;
-  @State totalPages: number = 0;
+  @State currentSpineIndex: number = 0;
+  @State totalSpines: number = 0;
+  @State isLoading: boolean = true;
   @State readerSettings: ReaderSettings = createDefaultReaderSettings();
 
   // 阅读器控制器
@@ -37,12 +37,14 @@ struct ReaderPage {
       this.filePath = params.filePath as string;
     }
 
+    if (!this.filePath) {
+      promptAction.showToast({ message: '文件路径无效' });
+      router.back();
+      return;
+    }
+
     this.loadSettings();
     this.initReader();
-  }
-
-  onPageShow(): void {
-    // 页面显示时恢复
   }
 
   onPageHide(): void {
@@ -51,7 +53,8 @@ struct ReaderPage {
   }
 
   aboutToDisappear(): void {
-    // 释放资源
+    // 保存进度并释放资源
+    this.saveProgress();
     try {
       this.readerController.releaseBook();
       LogUtil.info('Reader resources released');
@@ -76,6 +79,10 @@ struct ReaderPage {
       const bookInfo = this.bookParserHandler.getBookInfo();
       this.bookTitle = bookInfo.bookTitle;
 
+      // 获取总章节数
+      const spineList = this.bookParserHandler.getSpineList();
+      this.totalSpines = spineList.length;
+
       // 获取已保存的进度
       const bookDb = AppStorageV2.connect(BookDatabase, 'bookDb') as BookDatabase;
       let savedSpineIndex = 0;
@@ -97,13 +104,23 @@ struct ReaderPage {
       // 应用设置
       this.applySettings();
 
+      // 注册翻页回调，跟踪当前章节
+      this.readerController.on('pageShow', (data: readerCore.PageDataInfo) => {
+        if (data && data.resourceIndex >= 0) {
+          this.currentSpineIndex = data.resourceIndex;
+        }
+      });
+
       // 开始阅读
       this.readerController.startPlay(savedSpineIndex, savedDomPos);
+      this.currentSpineIndex = savedSpineIndex;
 
-      LogUtil.info(`Reader initialized: ${this.bookTitle}`);
+      this.isLoading = false;
+      LogUtil.info(`Reader initialized: ${this.bookTitle}, totalSpines=${this.totalSpines}`);
     } catch (err) {
       const error = err as BusinessError;
       LogUtil.error(`Failed to init reader: code=${error.code}, msg=${error.message}`);
+      this.isLoading = false;
       promptAction.showToast({ message: '打开书籍失败' });
     }
   }
@@ -147,12 +164,12 @@ struct ReaderPage {
       if (bookDb) {
         const progress: BookProgress = {
           bookId: this.bookId,
-          spineIndex: this.currentPage,
+          spineIndex: this.currentSpineIndex,
           domPos: '',
           updateTime: Date.now(),
         };
         bookDb.saveOrUpdateProgress(progress);
-        LogUtil.info('Reading progress saved');
+        LogUtil.info(`Reading progress saved: spineIndex=${this.currentSpineIndex}`);
       }
     } catch (err) {
       LogUtil.error(`Failed to save progress: ${JSON.stringify(err)}`);
@@ -160,18 +177,18 @@ struct ReaderPage {
   }
 
   private goBack(): void {
-    this.saveProgress();
     router.back();
   }
 
   private openAudioPlayer(): void {
+    this.saveProgress();
     router.pushUrl({
       url: 'pages/AudioPlayerPage',
       params: {
         bookId: this.bookId,
         filePath: this.filePath,
         bookTitle: this.bookTitle,
-        currentSpineIndex: this.currentPage,
+        currentSpineIndex: this.currentSpineIndex,
       }
     });
   }
@@ -182,8 +199,9 @@ struct ReaderPage {
       ReadPageComponent({
         controller: this.readerController,
         readerCallback: (err: BusinessError, data: readerCore.ReaderComponentController) => {
-          if (!err) {
-            this.readerController = data;
+          if (!err && data) {
+            // 使用回调返回的控制器实例，但不替换原始引用以避免资源泄漏
+            LogUtil.info('ReadPageComponent callback success');
           }
         }
       })
@@ -193,6 +211,19 @@ struct ReaderPage {
         // 点击切换工具栏显隐
         this.showToolbar = !this.showToolbar;
       })
+
+      // 加载中遮罩
+      if (this.isLoading) {
+        Column() {
+          Text('加载中...')
+            .fontSize(15)
+            .fontColor(AppTheme.textTertiary)
+        }
+        .width('100%')
+        .height('100%')
+        .justifyContent(FlexAlign.Center)
+        .backgroundColor(AppTheme.surfacePage)
+      }
 
       // 顶部工具栏（毛玻璃效果）
       if (this.showToolbar) {
@@ -253,11 +284,10 @@ struct ReaderPage {
         .backdropBlur(16)
         .backgroundEffect({ radius: 16, saturation: 0.8 })
         .padding({ top: 48 })
-        .animation({ duration: 200 })
 
         // 底部页码指示器
         Row() {
-          Text(`第 ${this.currentPage + 1} / ${this.totalPages || '?'} 页`)
+          Text(`第 ${this.currentSpineIndex + 1} / ${this.totalSpines || '?'} 章`)
             .fontSize(13)
             .fontColor(AppTheme.textSecondary)
         }
@@ -266,9 +296,6 @@ struct ReaderPage {
         .borderRadius(16)
         .backgroundColor('rgba(253,251,247,0.85)')
         .margin({ bottom: 24 })
-        .translate({ y: this.showToolbar ? 0 : 40 })
-        .opacity(this.showToolbar ? 1 : 0)
-        .animation({ duration: 200 })
       }
     }
     .width('100%')
