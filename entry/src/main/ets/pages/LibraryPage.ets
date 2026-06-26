@@ -35,12 +35,14 @@ export struct LibraryPage {
       const importService = new FileImportService();
       const filePath = await importService.selectAndImport(context);
       if (!filePath) {
+        // 用户取消选择或文件导入失败（错误日志已在 selectAndImport 中输出）
         this.isImporting = false;
         return;
       }
 
       const bookDb = AppStorageV2.connect(BookDatabase, 'bookDb') as BookDatabase;
       if (!bookDb) {
+        promptAction.showToast({ message: '数据库未初始化，请重试' });
         this.isImporting = false;
         return;
       }
@@ -51,7 +53,7 @@ export struct LibraryPage {
         promptAction.showToast({ message: `《${book.title}》导入成功` });
         this.loadBooks();
       } else {
-        promptAction.showToast({ message: '导入失败，请检查文件格式' });
+        promptAction.showToast({ message: '导入失败，该设备可能不支持此格式' });
       }
     } catch (err) {
       LogUtil.error(`Import error: ${JSON.stringify(err)}`);

@@ -1,7 +1,7 @@
 import { picker } from '@kit.CoreFileKit';
 import { fileIo } from '@kit.CoreFileKit';
 import { common } from '@kit.AbilityKit';
-import { SUPPORTED_FORMATS, BOOKS_DIR } from '../common/constants/AppConstants';
+import { BOOKS_DIR } from '../common/constants/AppConstants';
 import { LogUtil } from '../common/utils/LogUtil';
 
 export class FileImportService {
@@ -17,12 +17,12 @@ export class FileImportService {
         fileIo.mkdirSync(destDir);
       }
 
-      // 打开文件选择器
-      const documentPicker = new picker.DocumentViewPicker();
-      const selectResult = await documentPicker.select({
-        maxSelectNumber: 1,
-        fileSuffixFilters: SUPPORTED_FORMATS,
-      });
+      // 打开文件选择器（fileSuffixFilters 必须带 . 前缀）
+      const documentPicker = new picker.DocumentViewPicker(context);
+      const selectOptions = new picker.DocumentSelectOptions();
+      selectOptions.maxSelectNumber = 1;
+      selectOptions.fileSuffixFilters = ['.epub', '.txt', '.mobi', '.azw', '.azw3'];
+      const selectResult = await documentPicker.select(selectOptions);
 
       if (!selectResult || selectResult.length === 0) {
         LogUtil.info('User cancelled file selection');
@@ -30,6 +30,8 @@ export class FileImportService {
       }
 
       const srcUri = selectResult[0];
+      LogUtil.info(`Selected file URI: ${srcUri}`);
+
       // 从 URI 提取文件名
       const fileName = this.extractFileName(srcUri);
       const destPath = `${destDir}/${fileName}`;
@@ -40,9 +42,14 @@ export class FileImportService {
         return destPath;
       }
 
-      // 复制文件到沙箱
-      await fileIo.copyFile(srcUri, destPath);
-      LogUtil.info(`File imported to: ${destPath}`);
+      // 复制文件到沙箱：picker 返回的是 URI，需先 openSync 获取 fd
+      const srcFile = fileIo.openSync(srcUri, fileIo.OpenMode.READ_ONLY);
+      try {
+        fileIo.copyFileSync(srcFile.fd, destPath);
+        LogUtil.info(`File imported to: ${destPath}`);
+      } finally {
+        fileIo.closeSync(srcFile);
+      }
       return destPath;
     } catch (err) {
       LogUtil.error(`File import failed: ${JSON.stringify(err)}`);
@@ -51,11 +58,16 @@ export class FileImportService {
   }
 
   /**
-   * 从 URI 中提取文件名
+   * 从 URI 中提取文件名（含 URI 解码）
    */
   private extractFileName(uri: string): string {
     const parts = uri.split('/');
-    return parts[parts.length - 1] || 'unknown.txt';
+    const rawName = parts[parts.length - 1] || 'unknown.txt';
+    try {
+      return decodeURIComponent(rawName);
+    } catch (e) {
+      return rawName;
+    }
   }
 
   /**
