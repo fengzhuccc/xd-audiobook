@@ -14,6 +14,8 @@ export struct LibraryPage {
   @State books: BookInfo[] = [];
   @State isImporting: boolean = false;
   @State activeFilter: string = '全部';
+  // 书库变更计数：导入/删除后自增，通知书架页刷新
+  @StorageLink('bookshelfRefreshFlag') refreshFlag: number = 0;
   private filters: string[] = ['全部', 'EPUB', 'TXT', 'MOBI', 'AZW', 'AZW3'];
 
   aboutToAppear(): void {
@@ -52,6 +54,8 @@ export struct LibraryPage {
       if (book) {
         promptAction.showToast({ message: `《${book.title}》导入成功` });
         this.loadBooks();
+        // 通知书架页刷新
+        this.refreshFlag++;
       } else {
         promptAction.showToast({ message: '导入失败，该设备可能不支持此格式' });
       }
@@ -73,6 +77,8 @@ export struct LibraryPage {
       const deleted = await bookDb.deleteBook(book.id!);
       if (deleted > 0) {
         promptAction.showToast({ message: `《${book.title}》已删除` });
+        // 通知书架页刷新
+        this.refreshFlag++;
       } else {
         promptAction.showToast({ message: '删除失败，书籍未找到' });
       }

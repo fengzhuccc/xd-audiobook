@@ -12,8 +12,17 @@ export struct BookshelfPage {
   @State recentProgress: BookProgress | null = null;
   @State searchQuery: string = '';
   @State isSearching: boolean = false;
+  // 书库变更计数：LibraryPage 导入/删除后会自增，通过 @Watch 触发书架刷新
+  @StorageLink('bookshelfRefreshFlag') @Watch('onShelfChanged') refreshFlag: number = 0;
 
   aboutToAppear(): void {
+    this.loadBooks();
+  }
+
+  /**
+   * 监听书库变更：当 LibraryPage 导入/删除书籍后自增 refreshFlag，触发书架重新加载。
+   */
+  onShelfChanged(): void {
     this.loadBooks();
   }
 
