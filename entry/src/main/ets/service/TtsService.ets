@@ -1,6 +1,6 @@
-import { bookParser } from '@kit.ReaderKit';
 import { common } from '@kit.AbilityKit';
 import { LogUtil } from '../common/utils/LogUtil';
+import { IBookParserHandler } from './BookParser';
 
 export type TtsState = 'idle' | 'playing' | 'paused' | 'stopped';
 
@@ -11,7 +11,7 @@ export type TtsState = 'idle' | 'playing' | 'paused' | 'stopped';
 export class TtsService {
   private isInited: boolean = false;
   private state: TtsState = 'idle';
-  private bookParserHandler: bookParser.BookParserHandler | null = null;
+  private bookParserHandler: IBookParserHandler | null = null;
   private currentSpineIndex: number = 0;
   private bookTitle: string = '';
   private bookAuthor: string = '';
@@ -24,7 +24,7 @@ export class TtsService {
   }
 
   async startReading(
-    handler: bookParser.BookParserHandler,
+    handler: IBookParserHandler,
     spineIndex: number
   ): Promise<void> {
     if (!this.isInited || !handler) return;

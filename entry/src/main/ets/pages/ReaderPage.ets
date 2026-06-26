@@ -1,5 +1,4 @@
-import { router, promptAction, AppStorageV2, display } from '@kit.ArkUI';
-import { bookParser, readerCore, ReadPageComponent } from '@kit.ReaderKit';
+import { router, promptAction, AppStorageV2 } from '@kit.ArkUI';
 import { common } from '@kit.AbilityKit';
 import { AppTheme } from '../common/theme/AppTheme';
 import { READER_THEMES, ReaderTheme, createDefaultReaderSettings } from '../common/constants/ReaderConstants';
@@ -8,7 +7,7 @@ import { ReaderSettings } from '../common/model/ReaderSettings';
 import { PreferencesService } from '../service/PreferencesService';
 import { BookDatabase } from '../service/BookDatabase';
 import { LogUtil } from '../common/utils/LogUtil';
-import { BusinessError } from '@kit.BasicServicesKit';
+import { BookParserFactory, IBookParserHandler, htmlToPlainText } from '../service/BookParser';
 
 @Entry
 @Component
@@ -23,14 +22,15 @@ struct ReaderPage {
   @State currentSpineIndex: number = 0;
   @State totalSpines: number = 0;
   @State isLoading: boolean = true;
+  @State chapterContent: string = '';
   @State readerSettings: ReaderSettings = createDefaultReaderSettings();
+  @State catalogVisible: boolean = false;
 
-  // 阅读器控制器
-  private readerController: readerCore.ReaderComponentController = new readerCore.ReaderComponentController();
-  private bookParserHandler: bookParser.BookParserHandler | null = null;
+  // 解析器
+  private parserHandler: IBookParserHandler | null = null;
+  private scroller: Scroller = new Scroller();
 
   aboutToAppear(): void {
-    // 获取路由参数
     const params = router.getParams() as Record<string, Object>;
     if (params) {
       this.bookId = params.bookId as number;
@@ -48,18 +48,18 @@ struct ReaderPage {
   }
 
   onPageHide(): void {
-    // 页面隐藏时保存进度
     this.saveProgress();
   }
 
   aboutToDisappear(): void {
-    // 保存进度并释放资源
     this.saveProgress();
-    try {
-      this.readerController.releaseBook();
-      LogUtil.info('Reader resources released');
-    } catch (err) {
-      LogUtil.warn(`Release error: ${JSON.stringify(err)}`);
+    if (this.parserHandler) {
+      try {
+        this.parserHandler.release();
+        LogUtil.info('Parser resources released');
+      } catch (err) {
+        LogUtil.warn(`Release error: ${JSON.stringify(err)}`);
+      }
     }
   }
 
@@ -74,54 +74,50 @@ struct ReaderPage {
     try {
       const context = this.getUIContext().getHostContext() as common.UIAbilityContext;
 
-      // 初始化解析器
-      this.bookParserHandler = await bookParser.getDefaultHandler(this.filePath);
-      const bookInfo = this.bookParserHandler.getBookInfo();
+      // 使用自建解析器
+      this.parserHandler = await BookParserFactory.createHandler(this.filePath, context.tempDir);
+      const bookInfo = this.parserHandler.getBookInfo();
       this.bookTitle = bookInfo.bookTitle;
 
-      // 获取总章节数
-      const spineList = this.bookParserHandler.getSpineList();
+      const spineList = this.parserHandler.getSpineList();
       this.totalSpines = spineList.length;
 
       // 获取已保存的进度
       const bookDb = AppStorageV2.connect(BookDatabase, 'bookDb') as BookDatabase;
-      let savedSpineIndex = 0;
-      let savedDomPos = '';
       if (bookDb && this.bookId) {
         const progress = await bookDb.getProgressByBookId(this.bookId);
-        if (progress) {
-          savedSpineIndex = progress.spineIndex;
-          savedDomPos = progress.domPos;
+        if (progress && progress.spineIndex < this.totalSpines) {
+          this.currentSpineIndex = progress.spineIndex;
         }
-        // 更新最后阅读时间
         await bookDb.updateLastReadTime(this.bookId);
       }
 
-      // 初始化阅读器控制器
-      await this.readerController.init(context);
-      this.readerController.registerBookParser(this.bookParserHandler);
-
-      // 应用设置
-      this.applySettings();
-
-      // 注册翻页回调，跟踪当前章节
-      this.readerController.on('pageShow', (data: readerCore.PageDataInfo) => {
-        if (data && data.resourceIndex >= 0) {
-          this.currentSpineIndex = data.resourceIndex;
-        }
-      });
-
-      // 开始阅读
-      this.readerController.startPlay(savedSpineIndex, savedDomPos);
-      this.currentSpineIndex = savedSpineIndex;
-
+      // 加载章节内容
+      await this.loadChapter();
       this.isLoading = false;
       LogUtil.info(`Reader initialized: ${this.bookTitle}, totalSpines=${this.totalSpines}`);
     } catch (err) {
-      const error = err as BusinessError;
-      LogUtil.error(`Failed to init reader: code=${error.code}, msg=${error.message}`);
+      LogUtil.error(`Failed to init reader: ${JSON.stringify(err)}`);
       this.isLoading = false;
       promptAction.showToast({ message: '打开书籍失败' });
+    }
+  }
+
+  private async loadChapter(): Promise<void> {
+    if (!this.parserHandler) return;
+    try {
+      const rawContent = await this.parserHandler.getSpineItemContent(this.currentSpineIndex);
+      if (rawContent.startsWith('<') || rawContent.includes('<')) {
+        // HTML 内容，转为纯文本
+        this.chapterContent = htmlToPlainText(rawContent);
+      } else {
+        // 纯文本
+        this.chapterContent = rawContent;
+      }
+      this.scroller.scrollEdge(Edge.Top);
+    } catch (err) {
+      LogUtil.error(`Failed to load chapter: ${JSON.stringify(err)}`);
+      this.chapterContent = '';
     }
   }
 
@@ -130,31 +126,6 @@ struct ReaderPage {
     if (key === 'white') return READER_THEMES.white;
     if (key === 'night') return READER_THEMES.night;
     return null;
-  }
-
-  private applySettings(): void {
-    const theme = this.getThemeByKey(this.readerSettings.theme);
-    if (!theme) return;
-    try {
-      const pageConfig: readerCore.ReaderSetting = {
-        fontName: '系统字体',
-        fontPath: '',
-        fontSize: this.readerSettings.fontSize,
-        fontWeight: 400,
-        fontColor: theme.fontColor,
-        lineHeight: this.readerSettings.lineHeight,
-        nightMode: theme.name === '夜间',
-        themeColor: theme.backgroundColor,
-        themeBgImg: '',
-        flipMode: this.readerSettings.flipMode === 'slide' ? '1' : '0',
-        scaledDensity: display.getDefaultDisplaySync().scaledDensity > 0 ? display.getDefaultDisplaySync().scaledDensity : 1,
-        viewPortWidth: display.getDefaultDisplaySync().width,
-        viewPortHeight: display.getDefaultDisplaySync().height,
-      };
-      this.readerController.setPageConfig(pageConfig);
-    } catch (err) {
-      LogUtil.error(`Failed to apply settings: ${JSON.stringify(err)}`);
-    }
   }
 
   private saveProgress(): void {
@@ -176,6 +147,22 @@ struct ReaderPage {
     }
   }
 
+  private goPrevChapter(): void {
+    if (this.currentSpineIndex > 0) {
+      this.currentSpineIndex--;
+      this.loadChapter();
+      this.saveProgress();
+    }
+  }
+
+  private goNextChapter(): void {
+    if (this.currentSpineIndex < this.totalSpines - 1) {
+      this.currentSpineIndex++;
+      this.loadChapter();
+      this.saveProgress();
+    }
+  }
+
   private goBack(): void {
     router.back();
   }
@@ -193,22 +180,33 @@ struct ReaderPage {
     });
   }
 
+  private jumpToChapter(index: number): void {
+    this.currentSpineIndex = index;
+    this.catalogVisible = false;
+    this.loadChapter();
+    this.saveProgress();
+  }
+
   build() {
     Stack() {
-      // 阅读器组件
-      ReadPageComponent({
-        controller: this.readerController,
-        readerCallback: (err: BusinessError, data: readerCore.ReaderComponentController) => {
-          if (!err && data) {
-            // 使用回调返回的控制器实例，但不替换原始引用以避免资源泄漏
-            LogUtil.info('ReadPageComponent callback success');
-          }
+      // 阅读内容
+      Scroll(this.scroller) {
+        Column() {
+          Text(this.chapterContent)
+            .fontSize(this.readerSettings.fontSize)
+            .fontColor(this.getThemeByKey(this.readerSettings.theme)?.fontColor || AppTheme.textPrimary)
+            .lineHeight(this.readerSettings.fontSize * this.readerSettings.lineHeight)
+            .letterSpacing(this.readerSettings.letterSpacing * this.readerSettings.fontSize)
+            .width('100%')
+            .padding({ left: 24, right: 24, top: 60, bottom: 120 })
+            .textAlign(TextAlign.Start)
         }
-      })
+      }
       .width('100%')
       .height('100%')
+      .backgroundColor(this.getThemeByKey(this.readerSettings.theme)?.backgroundColor || AppTheme.surfacePage)
+      .scrollBar(BarState.Off)
       .onClick(() => {
-        // 点击切换工具栏显隐
         this.showToolbar = !this.showToolbar;
       })
 
@@ -225,11 +223,10 @@ struct ReaderPage {
         .backgroundColor(AppTheme.surfacePage)
       }
 
-      // 顶部工具栏（毛玻璃效果）
+      // 顶部工具栏
       if (this.showToolbar) {
         Column() {
           Row() {
-            // 返回按钮
             Row() {
               Image($r('app.media.ic_arrow_left'))
                 .width(22)
@@ -241,7 +238,6 @@ struct ReaderPage {
             .justifyContent(FlexAlign.Center)
             .onClick(() => { this.goBack() })
 
-            // 书名
             Text(this.bookTitle)
               .fontSize(16)
               .fontWeight(FontWeight.Medium)
@@ -252,7 +248,6 @@ struct ReaderPage {
               .textOverflow({ overflow: TextOverflow.Ellipsis })
               .padding({ left: 40, right: 40 })
 
-            // 朗读按钮
             Row() {
               Image($r('app.media.ic_headphone'))
                 .width(22)
@@ -264,7 +259,6 @@ struct ReaderPage {
             .justifyContent(FlexAlign.Center)
             .onClick(() => { this.openAudioPlayer() })
 
-            // 更多按钮
             Row() {
               Image($r('app.media.ic_more'))
                 .width(22)
@@ -274,28 +268,104 @@ struct ReaderPage {
             .width(40)
             .height(40)
             .justifyContent(FlexAlign.Center)
+            .onClick(() => { this.catalogVisible = true })
           }
           .width('100%')
           .height(56)
           .padding({ left: 4, right: 12 })
         }
         .width('100%')
-        .backgroundColor(Color.Transparent)
+        .backgroundColor('rgba(253,251,247,0.9)')
         .backdropBlur(16)
-        .backgroundEffect({ radius: 16, saturation: 0.8 })
         .padding({ top: 48 })
 
-        // 底部页码指示器
+        // 底部翻页控制
         Row() {
+          // 上一章
+          Row() {
+            Image($r('app.media.ic_skip_prev'))
+              .width(20)
+              .height(20)
+              .fillColor(this.currentSpineIndex > 0 ? AppTheme.textPrimary : AppTheme.textTertiary)
+          }
+          .width(40)
+          .height(40)
+          .justifyContent(FlexAlign.Center)
+          .onClick(() => { this.goPrevChapter() })
+
           Text(`第 ${this.currentSpineIndex + 1} / ${this.totalSpines || '?'} 章`)
             .fontSize(13)
             .fontColor(AppTheme.textSecondary)
+            .layoutWeight(1)
+            .textAlign(TextAlign.Center)
+
+          // 下一章
+          Row() {
+            Image($r('app.media.ic_skip_next'))
+              .width(20)
+              .height(20)
+              .fillColor(this.currentSpineIndex < this.totalSpines - 1 ? AppTheme.textPrimary : AppTheme.textTertiary)
+          }
+          .width(40)
+          .height(40)
+          .justifyContent(FlexAlign.Center)
+          .onClick(() => { this.goNextChapter() })
         }
-        .width('auto')
-        .padding({ left: 16, right: 16, top: 8, bottom: 8 })
-        .borderRadius(16)
-        .backgroundColor('rgba(253,251,247,0.85)')
-        .margin({ bottom: 24 })
+        .width('100%')
+        .height(56)
+        .padding({ left: 16, right: 16, bottom: 24 })
+        .backgroundColor('rgba(253,251,247,0.9)')
+        .backdropBlur(16)
+        .justifyContent(FlexAlign.SpaceBetween)
+      }
+
+      // 目录弹窗
+      if (this.catalogVisible) {
+        Column() {
+          // 遮罩
+          Column()
+            .width('100%')
+            .height('100%')
+            .backgroundColor('rgba(0,0,0,0.4)')
+            .onClick(() => { this.catalogVisible = false })
+
+          // 目录列表
+          Column() {
+            Row() {
+              Text('目录')
+                .fontSize(18)
+                .fontWeight(FontWeight.Bold)
+                .fontColor(AppTheme.textPrimary)
+              Text(`${this.parserHandler?.getCatalogList().length || 0} 章`)
+                .fontSize(13)
+                .fontColor(AppTheme.textTertiary)
+                .margin({ left: 8 })
+            }
+            .width('100%')
+            .padding({ left: 20, right: 20, top: 20, bottom: 16 })
+
+            List({ space: 4 }) {
+              ForEach(this.parserHandler?.getCatalogList() || [], (item: { href: string; title: string; level: number }, index: number) => {
+                ListItem() {
+                  Text(item.title)
+                    .fontSize(14)
+                    .fontColor(index === this.currentSpineIndex ? AppTheme.primary : AppTheme.textSecondary)
+                    .padding({ left: 20 + item.level * 16, right: 20, top: 12, bottom: 12 })
+                    .width('100%')
+                    .onClick(() => { this.jumpToChapter(index) })
+                }
+              }, (item: { href: string; title: string; level: number }, index: number) => `${index}_${item.href}`)
+            }
+            .layoutWeight(1)
+            .scrollBar(BarState.Off)
+          }
+          .width('80%')
+          .height('100%')
+          .backgroundColor(AppTheme.surfacePage)
+          .position({ x: '20%', y: '0' })
+        }
+        .width('100%')
+        .height('100%')
       }
     }
     .width('100%')
