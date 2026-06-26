@@ -121,6 +121,17 @@ struct ReaderPage {
     }
   }
 
+  private getCurrentChapterTitle(): string {
+    if (!this.parserHandler) {
+      return `第 ${this.currentSpineIndex + 1} 章`;
+    }
+    const catalog = this.parserHandler.getCatalogList();
+    if (this.currentSpineIndex >= 0 && this.currentSpineIndex < catalog.length) {
+      return catalog[this.currentSpineIndex].title || `第 ${this.currentSpineIndex + 1} 章`;
+    }
+    return `第 ${this.currentSpineIndex + 1} 章`;
+  }
+
   private getThemeByKey(key: string): ReaderTheme | null {
     if (key === 'warm') return READER_THEMES.warm;
     if (key === 'white') return READER_THEMES.white;
@@ -192,19 +203,59 @@ struct ReaderPage {
       // 阅读内容
       Scroll(this.scroller) {
         Column() {
+          // 章节标题
+          Text(this.getCurrentChapterTitle())
+            .fontSize(20)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(AppTheme.textPrimary)
+            .letterSpacing(2)
+            .fontFamily('serif')
+            .textAlign(TextAlign.Center)
+            .width('100%')
+            .margin({ top: 16, bottom: 24 })
+
+          // 装饰性分隔线
+          Row() {
+            Divider()
+              .vertical(false)
+              .strokeWidth(1)
+              .color(AppTheme.borderDefault)
+              .layoutWeight(1)
+
+            Text('◆')
+              .fontSize(12)
+              .fontColor(AppTheme.primary)
+              .opacity(0.4)
+              .width(16)
+              .height(16)
+              .textAlign(TextAlign.Center)
+
+            Divider()
+              .vertical(false)
+              .strokeWidth(1)
+              .color(AppTheme.borderDefault)
+              .layoutWeight(1)
+          }
+          .width('100%')
+          .height(16)
+          .justifyContent(FlexAlign.Center)
+          .padding({ left: 24, right: 24 })
+          .margin({ bottom: 24 })
+
+          // 正文
           Text(this.chapterContent)
             .fontSize(this.readerSettings.fontSize)
             .fontColor(this.getThemeByKey(this.readerSettings.theme)?.fontColor || AppTheme.textPrimary)
             .lineHeight(this.readerSettings.fontSize * this.readerSettings.lineHeight)
             .letterSpacing(this.readerSettings.letterSpacing * this.readerSettings.fontSize)
+            .textAlign(TextAlign.Justify)
             .width('100%')
-            .padding({ left: 24, right: 24, top: 60, bottom: 120 })
-            .textAlign(TextAlign.Start)
+            .padding({ left: 24, right: 24, top: 0, bottom: 120 })
         }
+        .width('100%')
       }
       .width('100%')
       .height('100%')
-      .backgroundColor(this.getThemeByKey(this.readerSettings.theme)?.backgroundColor || AppTheme.surfacePage)
       .scrollBar(BarState.Off)
       .onClick(() => {
         this.showToolbar = !this.showToolbar;
@@ -227,19 +278,21 @@ struct ReaderPage {
       if (this.showToolbar) {
         Column() {
           Row() {
+            // 返回
             Row() {
               Image($r('app.media.ic_arrow_left'))
                 .width(22)
                 .height(22)
                 .fillColor(AppTheme.textPrimary)
             }
-            .width(40)
-            .height(40)
+            .width(36)
+            .height(36)
             .justifyContent(FlexAlign.Center)
             .onClick(() => { this.goBack() })
 
+            // 书名
             Text(this.bookTitle)
-              .fontSize(16)
+              .fontSize(14)
               .fontWeight(FontWeight.Medium)
               .fontColor(AppTheme.textPrimary)
               .layoutWeight(1)
@@ -248,36 +301,39 @@ struct ReaderPage {
               .textOverflow({ overflow: TextOverflow.Ellipsis })
               .padding({ left: 40, right: 40 })
 
+            // 听书模式
             Row() {
               Image($r('app.media.ic_headphone'))
-                .width(22)
-                .height(22)
-                .fillColor(AppTheme.primary)
+                .width(20)
+                .height(20)
+                .fillColor(AppTheme.textPrimary)
             }
-            .width(40)
-            .height(40)
+            .width(36)
+            .height(36)
             .justifyContent(FlexAlign.Center)
             .onClick(() => { this.openAudioPlayer() })
 
+            // 更多 / 目录
             Row() {
               Image($r('app.media.ic_more'))
-                .width(22)
-                .height(22)
+                .width(20)
+                .height(20)
                 .fillColor(AppTheme.textPrimary)
             }
-            .width(40)
-            .height(40)
+            .width(36)
+            .height(36)
             .justifyContent(FlexAlign.Center)
             .onClick(() => { this.catalogVisible = true })
           }
           .width('100%')
-          .height(56)
-          .padding({ left: 4, right: 12 })
+          .height(48)
+          .padding({ left: 8, right: 8 })
         }
         .width('100%')
-        .backgroundColor('rgba(253,251,247,0.9)')
+        .backgroundColor('rgba(253,251,247,0.85)')
         .backdropBlur(16)
-        .padding({ top: 48 })
+        .padding({ top: 44 })
+        .align(Alignment.Top)
 
         // 底部翻页控制
         Row() {
@@ -293,7 +349,7 @@ struct ReaderPage {
           .justifyContent(FlexAlign.Center)
           .onClick(() => { this.goPrevChapter() })
 
-          Text(`第 ${this.currentSpineIndex + 1} / ${this.totalSpines || '?'} 章`)
+          Text(`第 ${this.currentSpineIndex + 1} / ${this.totalSpines} 章`)
             .fontSize(13)
             .fontColor(AppTheme.textSecondary)
             .layoutWeight(1)
@@ -317,11 +373,27 @@ struct ReaderPage {
         .backgroundColor('rgba(253,251,247,0.9)')
         .backdropBlur(16)
         .justifyContent(FlexAlign.SpaceBetween)
+        .align(Alignment.Bottom)
       }
 
-      // 目录弹窗
+      // 页面指示器（始终可见，悬浮于底部居中）
+      Row() {
+        Text(`第 ${this.currentSpineIndex + 1} 章 / 共 ${this.totalSpines} 章`)
+          .fontSize(11)
+          .fontColor(AppTheme.textTertiary)
+          .padding({ left: 12, right: 12, top: 4, bottom: 4 })
+          .backgroundColor('rgba(253,251,247,0.6)')
+          .backdropBlur(8)
+          .borderRadius(100)
+      }
+      .width('100%')
+      .justifyContent(FlexAlign.Center)
+      .align(Alignment.Bottom)
+      .margin({ bottom: 72 })
+
+      // 目录侧边栏
       if (this.catalogVisible) {
-        Column() {
+        Row() {
           // 遮罩
           Column()
             .width('100%')
@@ -329,7 +401,7 @@ struct ReaderPage {
             .backgroundColor('rgba(0,0,0,0.4)')
             .onClick(() => { this.catalogVisible = false })
 
-          // 目录列表
+          // 目录面板
           Column() {
             Row() {
               Text('目录')
@@ -359,10 +431,10 @@ struct ReaderPage {
             .layoutWeight(1)
             .scrollBar(BarState.Off)
           }
-          .width('80%')
+          .width('75%')
           .height('100%')
           .backgroundColor(AppTheme.surfacePage)
-          .position({ x: '20%', y: '0' })
+          .position({ x: '25%', y: 0 })
         }
         .width('100%')
         .height('100%')
@@ -370,5 +442,6 @@ struct ReaderPage {
     }
     .width('100%')
     .height('100%')
+    .backgroundColor(this.getThemeByKey(this.readerSettings.theme)?.backgroundColor || AppTheme.surfacePage)
   }
 }

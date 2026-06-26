@@ -64,6 +64,26 @@ export struct BookshelfPage {
     });
   }
 
+  /** 继续阅读卡片的阅读进度百分比（0-100） */
+  private getRecentProgressPercent(): number {
+    if (!this.recentProgress || !this.recentBook) return 0;
+    const total = (this.recentBook as BookInfo).totalSpines || 1;
+    if (total <= 0) return 0;
+    const pct = (this.recentProgress.spineIndex / total) * 100;
+    return Math.min(100, Math.max(0, Math.round(pct)));
+  }
+
+  /** 书架网格中某本书的阅读进度百分比（0-100），仅最近阅读的书有进度数据 */
+  private getBookProgressPercent(book: BookInfo): number {
+    if (this.recentBook && this.recentProgress && book.id === (this.recentBook as BookInfo).id) {
+      const total = (this.recentBook as BookInfo).totalSpines || 1;
+      if (total <= 0) return 0;
+      const pct = (this.recentProgress.spineIndex / total) * 100;
+      return Math.min(100, Math.max(0, Math.round(pct)));
+    }
+    return 0;
+  }
+
   build() {
     Column() {
       // 状态栏占位
@@ -71,152 +91,182 @@ export struct BookshelfPage {
 
       // 标题
       Text('书架')
-        .fontSize(24)
-        .fontWeight(FontWeight.Bold)
+        .fontSize(20)
+        .fontWeight(FontWeight.Medium)
         .fontColor(AppTheme.textPrimary)
-        .margin({ left: 20, right: 20, bottom: 16 })
-
-      // 搜索栏
-      Row() {
-        Image($r('app.media.ic_search'))
-          .width(18)
-          .height(18)
-          .margin({ left: 12 })
-          .fillColor(AppTheme.textTertiary)
-        TextInput({ placeholder: '搜索书名或作者...', text: this.searchQuery })
-          .layoutWeight(1)
-          .height(40)
-          .backgroundColor(Color.Transparent)
-          .padding({ left: 8, right: 12 })
-          .onChange((value: string) => {
-            this.searchQuery = value;
-          })
-          .onFocus(() => { this.isSearching = true })
-          .onBlur(() => { this.isSearching = false })
-      }
-      .height(44)
-      .backgroundColor(AppTheme.surfaceInset)
-      .borderRadius(12)
-      .margin({ left: 20, right: 20, bottom: 20 })
-      .clip(true)
+        .padding({ left: 20 })
+        .margin({ top: 4, bottom: 16 })
 
       Scroll() {
         Column() {
+          // 搜索栏
+          Row() {
+            Image($r('app.media.ic_search'))
+              .width(18)
+              .height(18)
+              .margin({ left: 14 })
+              .fillColor(AppTheme.textTertiary)
+            TextInput({ placeholder: '搜索书名或作者...', text: this.searchQuery })
+              .layoutWeight(1)
+              .height(44)
+              .fontSize(14)
+              .fontColor(AppTheme.textPrimary)
+              .backgroundColor(Color.Transparent)
+              .padding({ left: 8, right: 12 })
+              .onChange((value: string) => {
+                this.searchQuery = value;
+              })
+              .onFocus(() => { this.isSearching = true })
+              .onBlur(() => { this.isSearching = false })
+          }
+          .height(44)
+          .width('100%')
+          .backgroundColor(AppTheme.surfaceInset)
+          .borderRadius(12)
+          .margin({ bottom: 20 })
+          .clip(true)
+
           // 继续阅读区域
           if (this.recentBook) {
             Column() {
               Text('继续阅读')
-                .fontSize(16)
+                .fontSize(14)
                 .fontWeight(FontWeight.Medium)
-                .fontColor(AppTheme.textPrimary)
+                .fontColor(AppTheme.textSecondary)
+                .letterSpacing(0.5)
                 .alignSelf(ItemAlign.Start)
                 .margin({ bottom: 12 })
 
               // 继续阅读卡片
               Row() {
-                // 封面（使用带渐变的占位）
-                Stack() {
+                // 封面
+                Stack({ alignContent: Alignment.End }) {
                   Column()
                     .width('100%')
                     .height('100%')
-                    .borderRadius(6)
                     .linearGradient({
                       angle: 135,
                       colors: [[AppTheme.primaryLight, 0], [AppTheme.primary, 1]]
                     })
-                  Text((this.recentBook as BookInfo).title.charAt(0))
-                    .fontSize(24)
-                    .fontColor(Color.White)
-                    .fontWeight(FontWeight.Bold)
+                  Column() {
+                    Text((this.recentBook as BookInfo).title.charAt(0))
+                      .fontSize(24)
+                      .fontColor(Color.White)
+                      .fontWeight(FontWeight.Bold)
+                  }
+                  .width('100%')
+                  .height('100%')
+                  .justifyContent(FlexAlign.Center)
+                  .alignItems(HorizontalAlign.Center)
+                  // 右侧渐变过渡
+                  Column()
+                    .width(16)
+                    .height('100%')
+                    .linearGradient({
+                      angle: 90,
+                      colors: [['rgba(255,255,255,0)', 0], [AppTheme.surfaceCard, 1]]
+                    })
                 }
-                .width(64)
-                .height(88)
+                .width(100)
+                .height(140)
+                .borderRadius(8)
+                .clip(true)
 
+                // 右侧信息
                 Column() {
-                  Text(this.recentBook.title)
+                  Text((this.recentBook as BookInfo).title)
                     .fontSize(16)
                     .fontWeight(FontWeight.Medium)
                     .fontColor(AppTheme.textPrimary)
                     .maxLines(1)
                     .textOverflow({ overflow: TextOverflow.Ellipsis })
-                  Text(this.recentBook.author)
-                    .fontSize(13)
-                    .fontColor(AppTheme.textSecondary)
-                    .margin({ top: 4 })
+                  Text((this.recentBook as BookInfo).author)
+                    .fontSize(12)
+                    .fontColor(AppTheme.textTertiary)
+                    .margin({ top: 2 })
+
+                  // 进度行
+                  Row() {
+                    Text('阅读进度')
+                      .fontSize(12)
+                      .fontColor(AppTheme.textTertiary)
+                    Text(`${this.getRecentProgressPercent()}%`)
+                      .fontSize(12)
+                      .fontWeight(FontWeight.Medium)
+                      .fontColor(AppTheme.primary)
+                  }
+                  .width('100%')
+                  .justifyContent(FlexAlign.SpaceBetween)
+                  .margin({ top: 12 })
 
                   // 进度条
                   Stack({ alignContent: Alignment.Start }) {
                     Row()
-                      .height(4)
-                      .borderRadius(2)
-                      .backgroundColor(AppTheme.primaryLight)
                       .width('100%')
+                      .height(6)
+                      .borderRadius(3)
+                      .backgroundColor(AppTheme.borderDefault)
                     Row()
-                      .height(4)
-                      .borderRadius(2)
-                      .backgroundColor(AppTheme.primary)
-                      .width(this.recentProgress ?
-                        `${Math.min(100, (this.recentProgress.spineIndex / Math.max((this.recentBook as BookInfo).totalSpines || 1, 1)) * 100)}%`
-                        : '0%')
+                      .height(6)
+                      .borderRadius(3)
+                      .linearGradient({
+                        angle: 90,
+                        colors: [[AppTheme.primaryLight, 0], [AppTheme.primary, 1]]
+                      })
+                      .width(`${this.getRecentProgressPercent()}%`)
                   }
                   .width('100%')
-                  .margin({ top: 12 })
-
-                  Row() {
-                    Text(this.recentProgress ?
-                      `已读 ${this.recentProgress.spineIndex} / ${this.recentBook.totalSpines || '?'} 章` :
-                      '开始阅读')
-                      .fontSize(12)
-                      .fontColor(AppTheme.textTertiary)
-
-                    Text('继续')
-                      .fontSize(13)
-                      .fontWeight(FontWeight.Medium)
-                      .fontColor(AppTheme.primary)
-                      .margin({ left: 'auto' })
-                  }
-                  .width('100%')
+                  .height(6)
                   .margin({ top: 6 })
+
+                  // 继续按钮
+                  Text('继续')
+                    .fontSize(12)
+                    .fontWeight(FontWeight.Medium)
+                    .fontColor(AppTheme.textInverse)
+                    .backgroundColor(AppTheme.primary)
+                    .padding({ left: 20, right: 20, top: 6, bottom: 6 })
+                    .borderRadius(999)
+                    .alignSelf(ItemAlign.Start)
+                    .margin({ top: 14 })
                 }
                 .layoutWeight(1)
                 .alignItems(HorizontalAlign.Start)
                 .margin({ left: 14 })
               }
               .width('100%')
-              .padding(16)
+              .padding(12)
               .backgroundColor(AppTheme.surfaceCard)
-              .borderRadius(12)
-              .shadow({ radius: 8, color: 'rgba(61,53,42,0.05)', offsetY: 2 })
+              .borderRadius(8)
+              .shadow({ radius: 8, color: 'rgba(61,53,42,0.08)', offsetY: 2 })
               .onClick(() => { this.openBook(this.recentBook as BookInfo) })
             }
             .width('100%')
-            .padding({ left: 20, right: 20 })
             .alignItems(HorizontalAlign.Start)
-            .margin({ bottom: 28 })
+            .margin({ bottom: 24 })
           }
 
-          // 我的书架
+          // 我的书架标题
           Row() {
             Text('我的书架')
-              .fontSize(16)
+              .fontSize(14)
               .fontWeight(FontWeight.Medium)
-              .fontColor(AppTheme.textPrimary)
+              .fontColor(AppTheme.textSecondary)
+              .letterSpacing(0.5)
             Text(`共 ${this.filteredBooks().length} 本`)
-              .fontSize(13)
+              .fontSize(12)
               .fontColor(AppTheme.textTertiary)
               .margin({ left: 8 })
           }
           .width('100%')
-          .padding({ left: 20, right: 20 })
-          .margin({ bottom: 16 })
+          .margin({ bottom: 12 })
 
-          // 书架网格
+          // 书架网格 / 空状态
           if (this.filteredBooks().length === 0) {
             Column() {
               Text('书架空空如也')
                 .fontSize(15)
                 .fontColor(AppTheme.textTertiary)
-                .margin({ top: 60 })
               Text('去「书库」导入你的第一本书吧')
                 .fontSize(13)
                 .fontColor(AppTheme.textTertiary)
@@ -230,30 +280,53 @@ export struct BookshelfPage {
               ForEach(this.filteredBooks(), (book: BookInfo) => {
                 Column() {
                   // 封面
-                  Stack() {
+                  Stack({ alignContent: Alignment.Bottom }) {
                     Column()
                       .width('100%')
-                      .aspectRatio(5 / 7)
-                      .borderRadius(6)
+                      .height('100%')
                       .linearGradient({
                         angle: 135,
                         colors: this.getGradientForBook(book)
                       })
-                      .justifyContent(FlexAlign.Center)
-                    Text(book.title.charAt(0))
-                      .fontSize(28)
-                      .fontColor(Color.White)
-                      .fontWeight(FontWeight.Bold)
+                    Column() {
+                      Text(book.title.charAt(0))
+                        .fontSize(28)
+                        .fontColor(Color.White)
+                        .fontWeight(FontWeight.Bold)
+                        .fontFamily('serif')
+                    }
+                    .width('100%')
+                    .height('100%')
+                    .justifyContent(FlexAlign.Center)
+                    .alignItems(HorizontalAlign.Center)
+                    // 封面底部进度条
+                    Stack({ alignContent: Alignment.Start }) {
+                      Row()
+                        .width('100%')
+                        .height(4)
+                        .backgroundColor('rgba(0,0,0,0.15)')
+                      Row()
+                        .height(4)
+                        .backgroundColor(AppTheme.primary)
+                        .width(`${this.getBookProgressPercent(book)}%`)
+                    }
+                    .width('100%')
+                    .height(4)
                   }
                   .width('100%')
-                  .shadow({ radius: 4, color: 'rgba(61,53,42,0.04)', offsetY: 2 })
+                  .aspectRatio(0.715)
+                  .borderRadius(8)
+                  .clip(true)
 
                   Text(book.title)
                     .fontSize(13)
+                    .fontWeight(FontWeight.Medium)
                     .fontColor(AppTheme.textPrimary)
                     .maxLines(1)
                     .textOverflow({ overflow: TextOverflow.Ellipsis })
                     .margin({ top: 8 })
+                    .textAlign(TextAlign.Center)
+                    .width('100%')
 
                   Text(book.author)
                     .fontSize(11)
@@ -261,6 +334,8 @@ export struct BookshelfPage {
                     .maxLines(1)
                     .textOverflow({ overflow: TextOverflow.Ellipsis })
                     .margin({ top: 2 })
+                    .textAlign(TextAlign.Center)
+                    .width('100%')
                 }
                 .width('46%')
                 .margin({ left: '2%', right: '2%', bottom: 16 })
@@ -268,11 +343,10 @@ export struct BookshelfPage {
               }, (book: BookInfo) => `${book.id}_${book.filePath}`)
             }
             .width('100%')
-            .padding({ left: 8, right: 8 })
           }
         }
         .width('100%')
-        .padding({ bottom: 20 })
+        .padding({ left: 20, right: 20, bottom: 112 })
       }
       .layoutWeight(1)
       .scrollBar(BarState.Off)

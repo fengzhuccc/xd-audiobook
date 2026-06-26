@@ -28,10 +28,15 @@ struct AudioPlayerPage {
   // 定时关闭
   @State timerMinutes: number = 0;
   @State timerSecondsLeft: number = 0;
-  private timerHandle: number = -1;
 
+  // 语速
+  @State speedIndex: number = 0;
+
+  private timerHandle: number = -1;
   private ttsService: TtsService = new TtsService();
   private bookHandler: IBookParserHandler | null = null;
+  private speedLabels: string[] = ['1.0x', '1.25x', '1.5x', '2.0x'];
+  private speeds: number[] = [1.0, 1.25, 1.5, 2.0];
 
   aboutToAppear(): void {
     const params = router.getParams() as Record<string, Object>;
@@ -208,241 +213,314 @@ struct AudioPlayerPage {
     }
   }
 
+  private cycleSpeed(): void {
+    this.speedIndex = (this.speedIndex + 1) % this.speeds.length;
+    this.ttsService.setSpeed(this.speeds[this.speedIndex]);
+  }
+
   build() {
     Column() {
+      // 1. 状态栏占位
       Row().height(48).width('100%').backgroundColor(AppTheme.surfacePage);
 
-      // 顶部导航
+      // 2. 顶部导航
       Row() {
-        Image($r('app.media.ic_arrow_left'))
-          .width(22).height(22).fillColor(AppTheme.textPrimary)
-          .margin({ left: 8 })
-          .onClick(() => { this.goBackToReader() })
+        // 返回阅读器
+        Row() {
+          Image($r('app.media.ic_arrow_left'))
+            .width(24).height(24).fillColor(AppTheme.textPrimary)
+        }
+        .width(40).height(40)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(VerticalAlign.Center)
+        .onClick(() => { this.goBackToReader() })
 
-        Text(this.bookTitle)
-          .fontSize(16)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(AppTheme.textPrimary)
-          .layoutWeight(1)
-          .textAlign(TextAlign.Center)
+        // 中间标题
+        Column() {
+          Text(this.bookTitle)
+            .fontSize(16)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(AppTheme.textPrimary)
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .constraintSize({ maxWidth: 200 })
+          Text(this.currentChapter)
+            .fontSize(12)
+            .fontColor(AppTheme.textTertiary)
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .constraintSize({ maxWidth: 200 })
+            .margin({ top: 2 })
+        }
+        .layoutWeight(1)
+        .alignItems(HorizontalAlign.Center)
 
-        Image($r('app.media.ic_home'))
-          .width(22).height(22).fillColor(AppTheme.textPrimary)
-          .margin({ right: 8 })
-          .onClick(() => { this.goBackToShelf() })
+        // 返回书架
+        Row() {
+          Image($r('app.media.ic_home'))
+            .width(22).height(22).fillColor(AppTheme.textPrimary)
+        }
+        .width(40).height(40)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(VerticalAlign.Center)
+        .onClick(() => { this.goBackToShelf() })
       }
       .width('100%')
       .height(56)
-      .padding({ left: 8, right: 16 })
+      .padding({ left: 8, right: 8 })
       .alignItems(VerticalAlign.Center)
 
-      Text(this.currentChapter)
-        .fontSize(13)
-        .fontColor(AppTheme.textTertiary)
-        .textAlign(TextAlign.Center)
-        .width('100%')
-        .margin({ top: 4, bottom: 16 })
+      // 3. 封面
+      Stack() {
+        Column()
+          .width('100%')
+          .height('100%')
+          .linearGradient({
+            angle: 135,
+            colors: [[AppTheme.primaryLight, 0], [AppTheme.primary, 1]]
+          })
+        Text(this.bookTitle.charAt(0))
+          .fontSize(72)
+          .fontColor(Color.White)
+          .fontWeight(FontWeight.Bold)
+      }
+      .width(220)
+      .height(220)
+      .borderRadius(16)
+      .clip(true)
+      .shadow({ radius: 16, color: 'rgba(139,105,20,0.2)', offsetY: 8 })
+      .margin({ top: 8, bottom: 16 })
 
-      Scroll() {
+      // 4. 文本高亮区
+      Column() {
+        // 头部
+        Row() {
+          Image($r('app.media.ic_voice'))
+            .width(14).height(14).fillColor(AppTheme.primary)
+          Text('正在朗读')
+            .fontSize(12)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(AppTheme.textTertiary)
+            .margin({ left: 6 })
+        }
+        .alignItems(VerticalAlign.Center)
+        .margin({ bottom: 12 })
+
+        // 正文
         Column() {
-          // 封面展示区
-          Stack() {
-            Column()
-              .width('100%')
-              .height('100%')
-              .borderRadius(16)
-              .linearGradient({
-                angle: 135,
-                colors: [[AppTheme.primaryLight, 0], [AppTheme.primary, 1]]
-              })
-              .shadow({ radius: 16, color: 'rgba(139,105,20,0.2)', offsetY: 8 })
-            Text(this.bookTitle.charAt(0))
-              .fontSize(48)
-              .fontColor(Color.White)
-              .fontWeight(FontWeight.Bold)
-          }
-          .width(180)
-          .height(180)
-          .margin({ bottom: 24 })
-
-          // 文本高亮区域
-          Column() {
-            if (this.currentSentenceIndex > 0) {
-              Text(this.sentences.slice(0, this.currentSentenceIndex).join('。') + '。')
-                .fontSize(14)
-                .fontColor(AppTheme.textTertiary)
-                .maxLines(3)
-                .textOverflow({ overflow: TextOverflow.Ellipsis })
-                .margin({ bottom: 8 })
-            }
-
-            if (this.currentSentenceIndex < this.sentences.length) {
-              Text(this.sentences[this.currentSentenceIndex] + '。')
-                .fontSize(15)
-                .fontWeight(FontWeight.Medium)
-                .fontColor(AppTheme.textPrimary)
-                .backgroundColor(AppTheme.primaryLighter)
-                .borderRadius(6)
-                .padding(10)
-                .margin({ bottom: 8 })
-                .shadow({ radius: 8, color: 'rgba(232,213,163,0.5)', offsetY: 2 })
-            }
-
-            if (this.currentSentenceIndex + 1 < this.sentences.length) {
-              Text(this.sentences.slice(this.currentSentenceIndex + 1, this.currentSentenceIndex + 3).join('。') + '。')
-                .fontSize(14)
-                .fontColor(AppTheme.textSecondary)
-                .maxLines(3)
-                .textOverflow({ overflow: TextOverflow.Ellipsis })
-            }
-          }
-          .width('100%')
-          .padding(20)
-          .backgroundColor(AppTheme.surfaceCard)
-          .borderRadius(12)
-          .shadow({ radius: 4, color: 'rgba(61,53,42,0.04)', offsetY: 1 })
-          .margin({ bottom: 24 })
-
-          // 章节进度条
-          Row() {
-            Text(`第 ${this.currentSpineIndex + 1} 章`)
-              .fontSize(12)
-              .fontColor(AppTheme.textTertiary)
-            Text(`共 ${this.totalChapters} 章`)
-              .fontSize(12)
+          if (this.currentSentenceIndex > 0) {
+            Text(this.sentences.slice(0, this.currentSentenceIndex).join('。') + '。')
+              .fontSize(13)
+              .fontFamily('serif')
+              .lineHeight(28)
+              .letterSpacing(0.5)
               .fontColor(AppTheme.textTertiary)
           }
-          .width('100%')
-          .justifyContent(FlexAlign.SpaceBetween)
-          .margin({ bottom: 8 })
+          if (this.currentSentenceIndex < this.sentences.length) {
+            Text(this.sentences[this.currentSentenceIndex] + '。')
+              .fontSize(13)
+              .fontFamily('serif')
+              .lineHeight(28)
+              .letterSpacing(0.5)
+              .fontColor(AppTheme.textPrimary)
+              .backgroundColor(AppTheme.primaryLighter)
+              .borderRadius(4)
+              .padding({ left: 4, right: 4, top: 2, bottom: 2 })
+          }
+          if (this.currentSentenceIndex + 1 < this.sentences.length) {
+            Text(this.sentences.slice(this.currentSentenceIndex + 1, this.currentSentenceIndex + 3).join('。') + '。')
+              .fontSize(13)
+              .fontFamily('serif')
+              .lineHeight(28)
+              .letterSpacing(0.5)
+              .fontColor(AppTheme.textSecondary)
+          }
+        }
+        .width('100%')
+        .alignItems(HorizontalAlign.Start)
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
+      .padding({ left: 18, right: 18, top: 16, bottom: 16 })
+      .backgroundColor(AppTheme.surfaceCard)
+      .borderRadius(12)
+      .shadow({ radius: 4, color: 'rgba(61,53,42,0.04)', offsetY: 1 })
+      .margin({ left: 20, right: 20, bottom: 16 })
 
-          // 进度条
-          Stack({ alignContent: Alignment.Start }) {
+      // 5. 进度条
+      Column() {
+        Row() {
+          Text('0:00')
+            .fontSize(12)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(AppTheme.textSecondary)
+          Text('—')
+            .fontSize(12)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(AppTheme.textTertiary)
+        }
+        .width('100%')
+        .justifyContent(FlexAlign.SpaceBetween)
+        .margin({ bottom: 8 })
+
+        Stack({ alignContent: Alignment.Start }) {
+          Row()
+            .width('100%')
+            .height(4)
+            .borderRadius(2)
+            .backgroundColor(AppTheme.primaryLight)
+          Stack({ alignContent: Alignment.End }) {
             Row()
-              .height(4)
-              .borderRadius(2)
-              .backgroundColor(AppTheme.primaryLight)
               .width('100%')
-            Row()
               .height(4)
               .borderRadius(2)
               .backgroundColor(AppTheme.primary)
-              .width(this.totalChapters > 0 ?
-                `${Math.min(100, ((this.currentSpineIndex + 1) / this.totalChapters) * 100)}%`
-                : '0%')
+            Row()
+              .width(12)
+              .height(12)
+              .borderRadius(6)
+              .backgroundColor(AppTheme.primary)
+              .shadow({ radius: 4, color: 'rgba(139,105,20,0.35)', offsetY: 1 })
           }
-          .width('100%')
-          .margin({ bottom: 32 })
-
-          // 播放控制按钮组
-          Row({ space: 24 }) {
-            // 上一章
-            Column() {
-              Image($r('app.media.ic_skip_prev'))
-                .width(28).height(28).fillColor(AppTheme.textSecondary)
-            }
-            .onClick(() => { this.goPrevChapter() })
-
-            // 播放/暂停（大按钮）
-            Column() {
-              if (this.ttsState === 'playing') {
-                Image($r('app.media.ic_pause'))
-                  .width(32).height(32).fillColor(Color.White)
-              } else {
-                Image($r('app.media.ic_play'))
-                  .width(32).height(32).fillColor(Color.White)
-              }
-            }
-            .width(64)
-            .height(64)
-            .borderRadius(32)
-            .backgroundColor(AppTheme.primary)
-            .justifyContent(FlexAlign.Center)
-            .shadow({ radius: 16, color: 'rgba(139,105,20,0.3)', offsetY: 4 })
-            .onClick(() => { this.togglePlayPause() })
-
-            // 下一章
-            Column() {
-              Image($r('app.media.ic_skip_next'))
-                .width(28).height(28).fillColor(AppTheme.textSecondary)
-            }
-            .onClick(() => { this.goNextChapter() })
-          }
-          .width('100%')
-          .justifyContent(FlexAlign.Center)
-          .margin({ bottom: 32 })
-
-          // 语速控制
-          Text('1.0x')
-            .fontSize(13)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(AppTheme.primary)
-            .backgroundColor(AppTheme.primaryLightest)
-            .borderRadius(16)
-            .padding({ left: 16, right: 16, top: 6, bottom: 6 })
-            .margin({ bottom: 24 })
-
-          // 附加控制栏
-          Row() {
-            Row({ space: 6 }) {
-              Image($r('app.media.ic_timer'))
-                .width(18).height(18).fillColor(AppTheme.textSecondary)
-              Text('定时关闭')
-                .fontSize(13)
-                .fontColor(AppTheme.textSecondary)
-            }
-            .padding(12)
-            .backgroundColor(AppTheme.surfaceCard)
-            .borderRadius(10)
-            .onClick(() => {
-              if (this.timerMinutes === 0) {
-                this.startTimer(15);
-              } else {
-                this.clearTimer();
-              }
-            })
-
-            Row({ space: 6 }) {
-              Image($r('app.media.ic_voice'))
-                .width(18).height(18).fillColor(AppTheme.textSecondary)
-              Text('普通话女声')
-                .fontSize(13)
-                .fontColor(AppTheme.textSecondary)
-            }
-            .layoutWeight(1)
-            .margin({ left: 8 })
-            .padding(12)
-            .backgroundColor(AppTheme.surfaceCard)
-            .borderRadius(10)
-            .onClick(() => {
-              this.ttsService.showVoicePanel();
-            })
-
-            Row({ space: 6 }) {
-              Image($r('app.media.ic_speed'))
-                .width(18).height(18).fillColor(AppTheme.textSecondary)
-              Text('朗读速度')
-                .fontSize(13)
-                .fontColor(AppTheme.textSecondary)
-            }
-            .padding(12)
-            .backgroundColor(AppTheme.surfaceCard)
-            .borderRadius(10)
-            .onClick(() => {
-              this.ttsService.showVoicePanel();
-            })
-          }
-          .width('100%')
-          .margin({ bottom: 24 })
+          .width(`${this.totalChapters > 0
+            ? Math.min(100, ((this.currentSpineIndex + 1) / this.totalChapters) * 100)
+            : 0}%`)
+          .height(12)
         }
         .width('100%')
-        .padding({ left: 24, right: 24 })
+        .height(12)
       }
-      .layoutWeight(1)
-      .scrollBar(BarState.Off)
+      .width('100%')
+      .margin({ left: 24, right: 24, bottom: 8 })
+
+      // 6. 播放控制
+      Row({ space: 20 }) {
+        // 后退 15s
+        Column() {
+          Image($r('app.media.ic_rewind'))
+            .width(22).height(22).fillColor(AppTheme.textSecondary)
+        }
+        .width(44).height(44)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(VerticalAlign.Center)
+        .onClick(() => {})
+
+        // 上一章
+        Column() {
+          Image($r('app.media.ic_skip_prev'))
+            .width(24).height(24).fillColor(AppTheme.textPrimary)
+        }
+        .width(44).height(44)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(VerticalAlign.Center)
+        .onClick(() => { this.goPrevChapter() })
+
+        // 播放/暂停
+        Column() {
+          if (this.ttsState === 'playing') {
+            Image($r('app.media.ic_pause'))
+              .width(28).height(28).fillColor(Color.White)
+          } else {
+            Image($r('app.media.ic_play'))
+              .width(28).height(28).fillColor(Color.White)
+          }
+        }
+        .width(64).height(64)
+        .borderRadius(32)
+        .backgroundColor(AppTheme.primary)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(VerticalAlign.Center)
+        .shadow({ radius: 20, color: 'rgba(139,105,20,0.35)', offsetY: 4 })
+        .onClick(() => { this.togglePlayPause() })
+
+        // 下一章
+        Column() {
+          Image($r('app.media.ic_skip_next'))
+            .width(24).height(24).fillColor(AppTheme.textPrimary)
+        }
+        .width(44).height(44)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(VerticalAlign.Center)
+        .onClick(() => { this.goNextChapter() })
+
+        // 前进 15s
+        Column() {
+          Image($r('app.media.ic_forward'))
+            .width(22).height(22).fillColor(AppTheme.textSecondary)
+        }
+        .width(44).height(44)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(VerticalAlign.Center)
+        .onClick(() => {})
+      }
+      .width('100%')
+      .justifyContent(FlexAlign.Center)
+      .margin({ top: 16, bottom: 16, left: 24, right: 24 })
+
+      // 7. 语速控制
+      Text(this.speedLabels[this.speedIndex])
+        .fontSize(13)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(AppTheme.primary)
+        .backgroundColor(AppTheme.surfaceCard)
+        .borderRadius(999)
+        .border({ width: 1, color: AppTheme.borderDefault })
+        .padding({ left: 16, right: 16, top: 6, bottom: 6 })
+        .margin({ bottom: 16 })
+        .onClick(() => { this.cycleSpeed() })
+
+      // 8. 附加控制栏
+      Row() {
+        Column() {
+          Image($r('app.media.ic_timer'))
+            .width(20).height(20).fillColor(AppTheme.textSecondary)
+          Text('定时关闭')
+            .fontSize(12)
+            .fontColor(AppTheme.textSecondary)
+            .margin({ top: 4 })
+        }
+        .alignItems(HorizontalAlign.Center)
+        .onClick(() => {
+          if (this.timerMinutes === 0) {
+            this.startTimer(15);
+          } else {
+            this.clearTimer();
+          }
+        })
+
+        Column() {
+          Image($r('app.media.ic_voice'))
+            .width(20).height(20).fillColor(AppTheme.textSecondary)
+          Text('普通话女声')
+            .fontSize(12)
+            .fontColor(AppTheme.textSecondary)
+            .margin({ top: 4 })
+        }
+        .alignItems(HorizontalAlign.Center)
+        .onClick(() => {})
+
+        Column() {
+          Image($r('app.media.ic_speed'))
+            .width(20).height(20).fillColor(AppTheme.textSecondary)
+          Text('朗读速度')
+            .fontSize(12)
+            .fontColor(AppTheme.textSecondary)
+            .margin({ top: 4 })
+        }
+        .alignItems(HorizontalAlign.Center)
+        .onClick(() => {})
+      }
+      .width('100%')
+      .justifyContent(FlexAlign.SpaceAround)
+      .padding(12)
+      .backgroundColor(AppTheme.surfaceCard)
+      .borderRadius(12)
+      .shadow({ radius: 4, color: 'rgba(61,53,42,0.04)', offsetY: 1 })
+      .margin({ left: 20, right: 20, bottom: 24 })
     }
     .width('100%')
     .height('100%')
     .backgroundColor(AppTheme.surfacePage)
+    .alignItems(HorizontalAlign.Center)
   }
 }
