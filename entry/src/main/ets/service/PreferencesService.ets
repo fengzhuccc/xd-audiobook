@@ -20,7 +20,17 @@ const PREF_KEYS = {
 };
 
 export class PreferencesService {
+  private static instance: PreferencesService | null = null;
   private prefInstance: preferences.Preferences | null = null;
+
+  private constructor() {}
+
+  static getInstance(context?: common.UIAbilityContext): PreferencesService {
+    if (!PreferencesService.instance) {
+      PreferencesService.instance = new PreferencesService();
+    }
+    return PreferencesService.instance;
+  }
 
   async init(context: common.UIAbilityContext): Promise<void> {
     try {

@@ -12,7 +12,17 @@ const STORE_CONFIG: relationalStore.StoreConfig = {
 };
 
 export class BookDatabase {
+  private static instance: BookDatabase | null = null;
   private store: relationalStore.RdbStore | null = null;
+
+  private constructor() {}
+
+  static getInstance(context?: common.UIAbilityContext): BookDatabase {
+    if (!BookDatabase.instance) {
+      BookDatabase.instance = new BookDatabase();
+    }
+    return BookDatabase.instance;
+  }
 
   async init(context: common.UIAbilityContext): Promise<void> {
     try {
@@ -293,5 +303,13 @@ export class BookDatabase {
     const predicates = new relationalStore.RdbPredicates('bookmarks');
     predicates.equalTo('id', id);
     return await this.store.delete(predicates);
+  }
+
+  destroy(): void {
+    if (this.store) {
+      this.store.close();
+      this.store = null;
+      LogUtil.info('BookDatabase destroyed');
+    }
   }
 }
