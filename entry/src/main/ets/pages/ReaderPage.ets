@@ -119,13 +119,13 @@ struct ReaderPage {
     const theme = this.getThemeByKey(this.readerSettings.theme);
     if (!theme) return;
     try {
-      const pageConfig: readerCore.ReaderSetting = {
+      const pageConfig = {
         fontSize: this.readerSettings.fontSize,
         fontColor: theme.fontColor,
         themeColor: theme.backgroundColor,
         lineHeight: this.readerSettings.lineHeight,
         flipMode: this.readerSettings.flipMode === 'slide' ? '1' : '0',
-      };
+      } as unknown as readerCore.ReaderSetting;
       this.readerController.setPageConfig(pageConfig);
     } catch (err) {
       LogUtil.error(`Failed to apply settings: ${JSON.stringify(err)}`);

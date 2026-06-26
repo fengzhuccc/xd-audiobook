@@ -12,6 +12,11 @@ interface OptionItem<T> {
   value: T;
 }
 
+interface ThemeOption {
+  key: string;
+  theme: ReaderTheme;
+}
+
 @Component
 export struct SettingsPage {
   // 阅读设置
@@ -53,7 +58,7 @@ export struct SettingsPage {
   private speeds: number[] = [0.75, 1.0, 1.25, 1.5, 2.0];
 
   // 主题选项
-  private themeOptions: { key: string; theme: ReaderTheme }[] = [
+  private themeOptions: ThemeOption[] = [
     { key: 'warm', theme: READER_THEMES.warm },
     { key: 'white', theme: READER_THEMES.white },
     { key: 'night', theme: READER_THEMES.night },
@@ -229,7 +234,7 @@ export struct SettingsPage {
                 .fontColor(AppTheme.textSecondary)
                 .layoutWeight(1)
               Row({ space: 12 }) {
-                ForEach(this.themeOptions, (item: { key: string; theme: ReaderTheme }) => {
+                ForEach(this.themeOptions, (item: ThemeOption) => {
                   Column({ space: 4 }) {
                     Stack() {
                       Column()
