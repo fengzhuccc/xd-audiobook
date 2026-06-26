@@ -1,4 +1,3 @@
-import { bookParser } from '@kit.ReaderKit';
 import { common } from '@kit.AbilityKit';
 import { fileIo } from '@kit.CoreFileKit';
 import { COVERS_DIR } from '../common/constants/AppConstants';
@@ -35,8 +34,9 @@ export class BookParseService {
         fileIo.mkdirSync(coversDir);
       }
 
-      // 初始化书籍解析器
-      const handler: bookParser.BookParserHandler = await bookParser.getDefaultHandler(filePath);
+      // 动态导入 ReaderKit，避免模块加载阶段就依赖 ReaderKit HSP
+      const readerKit = await import('@kit.ReaderKit');
+      const handler = await readerKit.bookParser.getDefaultHandler(filePath);
 
       // 获取书籍信息
       const bookInfoData = handler.getBookInfo();
