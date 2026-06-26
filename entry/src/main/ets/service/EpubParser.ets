@@ -55,11 +55,8 @@ export class EpubParser implements IBookParserHandler {
     }
     fileIo.mkdirSync(extractDir, true);
 
-    // 使用 zlib 解压 EPUB（本质是 ZIP）
-    const options: zlib.Options = {
-      directory: extractDir,
-    };
-    await zlib.decompressFile(filePath, options);
+    // 使用 zlib 解压 EPUB（本质是 ZIP）：第二参数为目标目录路径
+    await zlib.decompressFile(filePath, extractDir);
     LogUtil.info(`EPUB extracted to: ${extractDir}`);
 
     // 读取 container.xml 获取 OPF 路径
