@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>朗读控制</title>
+    <style id="theme-vars">
+/* ============================================
+   Harmony Ebook Reader — Brand Design Tokens
+   Style: Warm Bookish / 温暖书卷风
+   ============================================ */
+
+:root {
+  /* ── Primary Palette — Warm Parchment ── */
+  --color-primary: #8B6914;
+  --color-primary-light: #C49A2A;
+  --color-primary-lighter: #E8D5A3;
+  --color-primary-lightest: #F5ECD7;
+  --color-primary-dark: #6B4F0E;
+  --color-primary-darker: #4A370A;
+
+  /* ── Neutral Palette — Warm Grays ── */
+  --color-neutral-50: #FDFBF7;
+  --color-neutral-100: #F7F3EB;
+  --color-neutral-200: #EDE6D8;
+  --color-neutral-300: #DDD3BF;
+  --color-neutral-400: #C4B69A;
+  --color-neutral-500: #A89678;
+  --color-neutral-600: #8A7A60;
+  --color-neutral-700: #6E614C;
+  --color-neutral-800: #554A3A;
+  --color-neutral-900: #3D352A;
+
+  /* ── Semantic Colors ── */
+  --state-success: #5B8C3E;
+  --state-warning: #D4920B;
+  --state-error: #C44D3F;
+  --state-info: #4A7B9D;
+
+  /* ── Surface & Background ── */
+  --surface-page: #FDFBF7;
+  --surface-card: #FFFFFF;
+  --surface-elevated: #FFFFFF;
+  --surface-inset: #F7F3EB;
+  --surface-reader: #FAF6EE;
+
+  /* ── Text Colors ── */
+  --text-primary: #3D352A;
+  --text-secondary: #6E614C;
+  --text-tertiary: #8A7A60;
+  --text-inverse: #FDFBF7;
+  --text-accent: #8B6914;
+  --text-link: #6B4F0E;
+
+  /* ── Border Colors ── */
+  --border-default: #EDE6D8;
+  --border-subtle: #F7F3EB;
+  --border-strong: #C4B69A;
+
+  /* ── Typography ── */
+  --font-sans: "PingFang SC", "HarmonyOS Sans SC", "Noto Sans SC", system-ui, -apple-system, sans-serif;
+  --font-serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", Georgia, serif;
+  --font-mono: "JetBrains Mono", "Fira Code", "SF Mono", monospace;
+
+  --text-xs: 0.6875rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.9375rem;
+  --text-lg: 1.0625rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
+
+  --leading-tight: 1.3;
+  --leading-snug: 1.45;
+  --leading-normal: 1.6;
+  --leading-relaxed: 1.75;
+  --leading-loose: 1.9;
+
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.04em;
+
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* ── Spacing Scale ── */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  /* ── Radius Scale ── */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  /* ── Shadow System ── */
+  --shadow-sm: 0 1px 2px rgba(61, 53, 42, 0.04);
+  --shadow-md: 0 2px 8px rgba(61, 53, 42, 0.05);
+  --shadow-lg: 0 4px 16px rgba(61, 53, 42, 0.05);
+  --shadow-xl: 0 8px 32px rgba(61, 53, 42, 0.05);
+
+  /* ── Reader-specific Tokens ── */
+  --reader-bg: #FAF6EE;
+  --reader-text: #3D352A;
+  --reader-line-height: 1.9;
+  --reader-font-size: 1.0625rem;
+  --reader-letter-spacing: 0.02em;
+  --reader-paragraph-spacing: 1.2em;
+  --reader-max-width: 42rem;
+
+  /* ── Audio Player Tokens ── */
+  --audio-progress-bg: #EDE6D8;
+  --audio-progress-fill: #8B6914;
+  --audio-control-bg: rgba(255, 255, 255, 0.95);
+}
+
+/* ── Dark Mode ── */
+html.dark {
+  --color-primary: #C49A2A;
+  --color-primary-light: #D4AA3A;
+  --color-primary-lighter: #8B6914;
+  --color-primary-lightest: #6B4F0E;
+  --color-primary-dark: #E8D5A3;
+  --color-primary-darker: #F5ECD7;
+
+  --color-neutral-50: #2A2520;
+  --color-neutral-100: #332E27;
+  --color-neutral-200: #3D352A;
+  --color-neutral-300: #554A3A;
+  --color-neutral-400: #6E614C;
+  --color-neutral-500: #8A7A60;
+  --color-neutral-600: #A89678;
+  --color-neutral-700: #C4B69A;
+  --color-neutral-800: #DDD3BF;
+  --color-neutral-900: #EDE6D8;
+
+  --surface-page: #1A1714;
+  --surface-card: #2A2520;
+  --surface-elevated: #332E27;
+  --surface-inset: #222018;
+  --surface-reader: #1E1B16;
+
+  --text-primary: #EDE6D8;
+  --text-secondary: #C4B69A;
+  --text-tertiary: #A89678;
+  --text-inverse: #3D352A;
+  --text-accent: #C49A2A;
+  --text-link: #D4AA3A;
+
+  --border-default: #3D352A;
+  --border-subtle: #2A2520;
+  --border-strong: #554A3A;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.15);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.25);
+  --shadow-xl: 0 8px 32px rgba(0, 0, 0, 0.3);
+
+  --reader-bg: #1E1B16;
+  --reader-text: #DDD3BF;
+  --audio-progress-bg: #3D352A;
+  --audio-progress-fill: #C49A2A;
+  --audio-control-bg: rgba(42, 37, 32, 0.95);
+}
+
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1/dist/index.global.js"></script>
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <style type="text/tailwindcss">
+  @theme inline {
+    --color-primary: var(--color-primary);
+  }
+  @layer base {
+    body { background: var(--color-background); color: var(--color-foreground); }
+    td, th { @apply break-words; word-break: break-all; word-break: auto-phrase; }
+    th { @apply whitespace-nowrap; }
+  }
+    </style>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+    </style>
+</head>
+<body class="min-h-screen font-sans antialiased">
+    <main class="flex flex-col min-h-screen" style="background-color: var(--surface-page); font-family: var(--font-sans); color: var(--text-primary);">
+
+      <!-- ========== Status Bar ========== -->
+      <div class="flex items-center justify-between px-5 pt-2 pb-1" style="min-height: 44px;">
+        <span class="text-sm font-medium" style="color: var(--text-primary);">9:41</span>
+        <div class="flex items-center gap-1.5">
+          <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><rect x="0" y="9" width="3" height="3" rx="0.5" style="fill: var(--text-primary);"/><rect x="4.5" y="6" width="3" height="6" rx="0.5" style="fill: var(--text-primary);"/><rect x="9" y="3" width="3" height="9" rx="0.5" style="fill: var(--text-primary);"/><rect x="13.5" y="0" width="3" height="12" rx="0.5" style="fill: var(--text-primary);"/></svg>
+          <svg width="24" height="12" viewBox="0 0 24 12" fill="none"><rect x="0.5" y="0.5" width="20" height="11" rx="2" stroke="var(--text-primary)" stroke-width="1" fill="none"/><rect x="22" y="3.5" width="2" height="5" rx="1" style="fill: var(--text-primary);"/><rect x="2" y="2" width="16" height="8" rx="1" style="fill: var(--text-primary);"/></svg>
+        </div>
+      </div>
+
+      <!-- ========== Top Navigation Bar ========== -->
+      <div class="flex items-center justify-between px-4 py-3">
+        <!-- Back to reader -->
+        <button data-dom-id="btn-back-reader" class="flex items-center justify-center" style="width: 40px; height: 40px; color: var(--text-primary);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 18l-6-6 6-6"/>
+          </svg>
+        </button>
+        <!-- Center: Book title + chapter -->
+        <div class="flex flex-col items-center flex-1 mx-3">
+          <span class="text-base font-semibold truncate" style="color: var(--text-primary); max-width: 200px;">山河入梦</span>
+          <span class="text-xs truncate" style="color: var(--text-tertiary); max-width: 200px;">第一章 秋风起</span>
+        </div>
+        <!-- Back to bookshelf -->
+        <button data-dom-id="btn-back-shelf" class="flex items-center justify-center" style="width: 40px; height: 40px; color: var(--text-primary);">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- ========== Cover Art Area ========== -->
+      <div class="flex justify-center px-8 pt-2 pb-4">
+        <div style="width: 220px; height: 220px; border-radius: var(--radius-xl); box-shadow: var(--shadow-lg); overflow: hidden;">
+          <img src="../assets/audio-cover-art.jpg" alt="山河入梦 封面" style="width: 100%; height: 100%; object-fit: cover; display: block;" />
+        </div>
+      </div>
+
+      <!-- ========== Text Highlight Section ========== -->
+      <div class="mx-5 mb-4" style="background-color: var(--surface-card); border-radius: var(--radius-lg); padding: 16px 18px; box-shadow: var(--shadow-sm);">
+        <div class="flex items-center gap-2 mb-3">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+          </svg>
+          <span class="text-xs font-medium" style="color: var(--text-tertiary);">正在朗读</span>
+        </div>
+        <div style="font-family: var(--font-serif); font-size: var(--text-sm); line-height: var(--leading-loose); letter-spacing: 0.02em;">
+          <!-- Already-read text -->
+          <span style="color: var(--text-tertiary);">江面上偶尔驶过几艘货轮，汽笛声在灰蒙蒙的天空下显得格外悠远。</span><br/>
+          <!-- Current sentence with amber glow spotlight -->
+          <span style="position: relative; color: var(--text-primary); background: var(--color-primary-lighter); padding: 2px 4px; border-radius: 4px; box-shadow: 0 0 12px 2px rgba(139, 105, 20, 0.15);">他把手插在中山装的口袋里，感受着初秋微凉的江风。</span><br/>
+          <!-- Upcoming text -->
+          <span style="color: var(--text-secondary);">身后的城市正在经历一场前所未有的变革...</span>
+        </div>
+      </div>
+
+      <!-- ========== Progress Bar ========== -->
+      <div class="px-6 mb-2">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-medium" style="color: var(--text-secondary);">12:35</span>
+          <span class="text-xs font-medium" style="color: var(--text-tertiary);">8:42:00</span>
+        </div>
+        <div style="width: 100%; height: 4px; background: var(--audio-progress-bg); border-radius: var(--radius-full); position: relative; cursor: pointer;">
+          <div style="width: 2.5%; height: 100%; background: var(--audio-progress-fill); border-radius: var(--radius-full); position: relative;">
+            <div style="position: absolute; right: -6px; top: 50%; transform: translateY(-50%); width: 12px; height: 12px; background: var(--audio-progress-fill); border-radius: 50%; box-shadow: 0 1px 4px rgba(139, 105, 20, 0.3);"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== Playback Controls ========== -->
+      <div class="flex items-center justify-center gap-5 py-4 px-6">
+        <!-- Rewind 15s -->
+        <button class="flex items-center justify-center" style="width: 44px; height: 44px; color: var(--text-secondary);">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="1 4 1 10 7 10"/>
+            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+            <text x="12" y="16" text-anchor="middle" font-size="7" font-weight="600" fill="currentColor" stroke="none" font-family="sans-serif">15</text>
+          </svg>
+        </button>
+        <!-- Previous chapter -->
+        <button class="flex items-center justify-center" style="width: 44px; height: 44px; color: var(--text-primary);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M6 6h2v12H6V6zm3.5 6l8.5 6V6l-8.5 6z"/>
+          </svg>
+        </button>
+        <!-- Play/Pause (large, playing state) -->
+        <button class="flex items-center justify-center" style="width: 64px; height: 64px; border-radius: 50%; background: var(--color-primary); box-shadow: 0 4px 20px rgba(139, 105, 20, 0.35);">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="var(--text-inverse)">
+            <rect x="6" y="4" width="4" height="16" rx="1"/>
+            <rect x="14" y="4" width="4" height="16" rx="1"/>
+          </svg>
+        </button>
+        <!-- Next chapter -->
+        <button class="flex items-center justify-center" style="width: 44px; height: 44px; color: var(--text-primary);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
+          </svg>
+        </button>
+        <!-- Forward 15s -->
+        <button class="flex items-center justify-center" style="width: 44px; height: 44px; color: var(--text-secondary);">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"/>
+            <path d="M20.49 15a9 9 0 1 1-2.13-9.36L23 10"/>
+            <text x="12" y="16" text-anchor="middle" font-size="7" font-weight="600" fill="currentColor" stroke="none" font-family="sans-serif">15</text>
+          </svg>
+        </button>
+      </div>
+
+      <!-- ========== Speed Control ========== -->
+      <div class="flex justify-center mb-4">
+        <button class="flex items-center justify-center" style="padding: 6px 16px; border-radius: var(--radius-full); border: 1px solid var(--border-default); background: var(--surface-card); color: var(--text-accent); font-size: var(--text-sm); font-weight: var(--weight-medium);">
+          1.0x
+        </button>
+      </div>
+
+      <!-- ========== Additional Controls Row ========== -->
+      <div class="flex items-center justify-around px-6 py-3 mx-5 mb-6" style="background: var(--audio-control-bg); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);">
+        <!-- Timer / Sleep -->
+        <button class="flex flex-col items-center gap-1.5">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+          <span class="text-xs" style="color: var(--text-secondary);">定时关闭</span>
+        </button>
+        <!-- Voice selection -->
+        <button class="flex flex-col items-center gap-1.5">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="23"/>
+            <line x1="8" y1="23" x2="16" y2="23"/>
+          </svg>
+          <span class="text-xs" style="color: var(--text-secondary);">普通话女声</span>
+        </button>
+        <!-- Reading speed presets -->
+        <button class="flex flex-col items-center gap-1.5">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" y1="21" x2="4" y2="14"/>
+            <line x1="4" y1="10" x2="4" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="12"/>
+            <line x1="12" y1="8" x2="12" y2="3"/>
+            <line x1="20" y1="21" x2="20" y2="16"/>
+            <line x1="20" y1="12" x2="20" y2="3"/>
+            <line x1="1" y1="14" x2="7" y2="14"/>
+            <line x1="9" y1="8" x2="15" y2="8"/>
+            <line x1="17" y1="16" x2="23" y2="16"/>
+          </svg>
+          <span class="text-xs" style="color: var(--text-secondary);">朗读速度</span>
+        </button>
+      </div>
+
+    </main>
+    <script>lucide.createIcons();</script>
+</body>
+</html>

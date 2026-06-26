@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>阅读器</title>
+    <style id="theme-vars">
+/* ============================================
+   Harmony Ebook Reader — Brand Design Tokens
+   Style: Warm Bookish / 温暖书卷风
+   ============================================ */
+
+:root {
+  /* ── Primary Palette — Warm Parchment ── */
+  --color-primary: #8B6914;
+  --color-primary-light: #C49A2A;
+  --color-primary-lighter: #E8D5A3;
+  --color-primary-lightest: #F5ECD7;
+  --color-primary-dark: #6B4F0E;
+  --color-primary-darker: #4A370A;
+
+  /* ── Neutral Palette — Warm Grays ── */
+  --color-neutral-50: #FDFBF7;
+  --color-neutral-100: #F7F3EB;
+  --color-neutral-200: #EDE6D8;
+  --color-neutral-300: #DDD3BF;
+  --color-neutral-400: #C4B69A;
+  --color-neutral-500: #A89678;
+  --color-neutral-600: #8A7A60;
+  --color-neutral-700: #6E614C;
+  --color-neutral-800: #554A3A;
+  --color-neutral-900: #3D352A;
+
+  /* ── Semantic Colors ── */
+  --state-success: #5B8C3E;
+  --state-warning: #D4920B;
+  --state-error: #C44D3F;
+  --state-info: #4A7B9D;
+
+  /* ── Surface & Background ── */
+  --surface-page: #FDFBF7;
+  --surface-card: #FFFFFF;
+  --surface-elevated: #FFFFFF;
+  --surface-inset: #F7F3EB;
+  --surface-reader: #FAF6EE;
+
+  /* ── Text Colors ── */
+  --text-primary: #3D352A;
+  --text-secondary: #6E614C;
+  --text-tertiary: #8A7A60;
+  --text-inverse: #FDFBF7;
+  --text-accent: #8B6914;
+  --text-link: #6B4F0E;
+
+  /* ── Border Colors ── */
+  --border-default: #EDE6D8;
+  --border-subtle: #F7F3EB;
+  --border-strong: #C4B69A;
+
+  /* ── Typography ── */
+  --font-sans: "PingFang SC", "HarmonyOS Sans SC", "Noto Sans SC", system-ui, -apple-system, sans-serif;
+  --font-serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", Georgia, serif;
+  --font-mono: "JetBrains Mono", "Fira Code", "SF Mono", monospace;
+
+  --text-xs: 0.6875rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.9375rem;
+  --text-lg: 1.0625rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
+
+  --leading-tight: 1.3;
+  --leading-snug: 1.45;
+  --leading-normal: 1.6;
+  --leading-relaxed: 1.75;
+  --leading-loose: 1.9;
+
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.04em;
+
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* ── Spacing Scale ── */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  /* ── Radius Scale ── */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  /* ── Shadow System ── */
+  --shadow-sm: 0 1px 2px rgba(61, 53, 42, 0.04);
+  --shadow-md: 0 2px 8px rgba(61, 53, 42, 0.05);
+  --shadow-lg: 0 4px 16px rgba(61, 53, 42, 0.05);
+  --shadow-xl: 0 8px 32px rgba(61, 53, 42, 0.05);
+
+  /* ── Reader-specific Tokens ── */
+  --reader-bg: #FAF6EE;
+  --reader-text: #3D352A;
+  --reader-line-height: 1.9;
+  --reader-font-size: 1.0625rem;
+  --reader-letter-spacing: 0.02em;
+  --reader-paragraph-spacing: 1.2em;
+  --reader-max-width: 42rem;
+
+  /* ── Audio Player Tokens ── */
+  --audio-progress-bg: #EDE6D8;
+  --audio-progress-fill: #8B6914;
+  --audio-control-bg: rgba(255, 255, 255, 0.95);
+}
+
+/* ── Dark Mode ── */
+html.dark {
+  --color-primary: #C49A2A;
+  --color-primary-light: #D4AA3A;
+  --color-primary-lighter: #8B6914;
+  --color-primary-lightest: #6B4F0E;
+  --color-primary-dark: #E8D5A3;
+  --color-primary-darker: #F5ECD7;
+
+  --color-neutral-50: #2A2520;
+  --color-neutral-100: #332E27;
+  --color-neutral-200: #3D352A;
+  --color-neutral-300: #554A3A;
+  --color-neutral-400: #6E614C;
+  --color-neutral-500: #8A7A60;
+  --color-neutral-600: #A89678;
+  --color-neutral-700: #C4B69A;
+  --color-neutral-800: #DDD3BF;
+  --color-neutral-900: #EDE6D8;
+
+  --surface-page: #1A1714;
+  --surface-card: #2A2520;
+  --surface-elevated: #332E27;
+  --surface-inset: #222018;
+  --surface-reader: #1E1B16;
+
+  --text-primary: #EDE6D8;
+  --text-secondary: #C4B69A;
+  --text-tertiary: #A89678;
+  --text-inverse: #3D352A;
+  --text-accent: #C49A2A;
+  --text-link: #D4AA3A;
+
+  --border-default: #3D352A;
+  --border-subtle: #2A2520;
+  --border-strong: #554A3A;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.15);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.25);
+  --shadow-xl: 0 8px 32px rgba(0, 0, 0, 0.3);
+
+  --reader-bg: #1E1B16;
+  --reader-text: #DDD3BF;
+  --audio-progress-bg: #3D352A;
+  --audio-progress-fill: #C49A2A;
+  --audio-control-bg: rgba(42, 37, 32, 0.95);
+}
+
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1/dist/index.global.js"></script>
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <style type="text/tailwindcss">
+  @theme inline {
+    --color-primary: var(--color-primary);
+  }
+  @layer base {
+    body { background: var(--color-background); color: var(--color-foreground); }
+    td, th { @apply break-words; word-break: break-all; word-break: auto-phrase; }
+    th { @apply whitespace-nowrap; }
+  }
+    </style>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+    </style>
+</head>
+<body class="min-h-screen font-sans antialiased">
+    <main class="relative min-h-screen" style="background: var(--reader-bg);">
+
+      <!-- Top Toolbar -->
+      <header class="fixed top-0 left-0 right-0 z-50" style="background: rgba(253, 251, 247, 0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);">
+        <div class="flex items-center justify-between px-4 h-12 max-w-screen-sm mx-auto">
+          <!-- Back button -->
+          <button data-dom-id="btn-back-shelf" class="flex items-center justify-center w-9 h-9 rounded-full transition-opacity hover:opacity-70" style="color: var(--text-primary);" aria-label="返回书架">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          </button>
+
+          <!-- Book title centered -->
+          <h1 class="text-sm font-medium truncate flex-1 text-center" style="color: var(--text-primary); font-family: var(--font-sans);">山河入梦</h1>
+
+          <!-- Right actions -->
+          <div class="flex items-center gap-1">
+            <!-- Audio mode button -->
+            <button data-dom-id="btn-audio-mode" class="flex items-center justify-center w-9 h-9 rounded-full transition-opacity hover:opacity-70" style="color: var(--text-primary);" aria-label="听书模式">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 18v-6a9 9 0 0 1 18 0v6"></path>
+                <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path>
+              </svg>
+            </button>
+
+            <!-- More options button -->
+            <button class="flex items-center justify-center w-9 h-9 rounded-full transition-opacity hover:opacity-70" style="color: var(--text-primary);" aria-label="更多选项">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="1"></circle>
+                <circle cx="12" cy="5" r="1"></circle>
+                <circle cx="12" cy="19" r="1"></circle>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Reader Content Area -->
+      <div class="pt-16 pb-20 px-6 min-h-screen flex justify-center">
+        <article class="w-full max-w-screen-sm" style="max-width: var(--reader-max-width);">
+
+          <!-- Paper texture overlay -->
+          <div class="relative">
+            <!-- Subtle paper texture effect via radial gradient -->
+            <div class="absolute inset-0 pointer-events-none" style="
+              background:
+                radial-gradient(ellipse at 0% 0%, rgba(218, 195, 150, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 100% 0%, rgba(218, 195, 150, 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 0% 100%, rgba(218, 195, 150, 0.07) 0%, transparent 50%),
+                radial-gradient(ellipse at 100% 100%, rgba(218, 195, 150, 0.05) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(218, 195, 150, 0.04) 100%);
+            " aria-hidden="true"></div>
+
+            <!-- Chapter title -->
+            <h2 class="text-center mb-8 pt-4" style="
+              font-family: var(--font-serif);
+              font-size: var(--text-xl);
+              font-weight: var(--weight-semibold);
+              color: var(--text-primary);
+              letter-spacing: 0.08em;
+              line-height: var(--leading-relaxed);
+            ">第一章 秋风起</h2>
+
+            <!-- Decorative divider -->
+            <div class="flex items-center justify-center mb-8" aria-hidden="true">
+              <div class="h-px flex-1" style="background: var(--border-default);"></div>
+              <svg class="mx-3" width="16" height="16" viewBox="0 0 16 16" fill="none" style="color: var(--color-primary); opacity: 0.4;">
+                <path d="M8 1L10 6L15 8L10 10L8 15L6 10L1 8L6 6L8 1Z" fill="currentColor"/>
+              </svg>
+              <div class="h-px flex-1" style="background: var(--border-default);"></div>
+            </div>
+
+            <!-- Body text -->
+            <div style="
+              font-family: var(--font-serif);
+              font-size: var(--reader-font-size);
+              line-height: var(--reader-line-height);
+              letter-spacing: var(--reader-letter-spacing);
+              color: var(--reader-text);
+              text-align: justify;
+              word-break: break-all;
+            ">
+              <p style="text-indent: 2em; margin-bottom: var(--reader-paragraph-spacing);">一九八六年秋天，上海的梧桐叶开始泛黄的时候，谭功达站在外滩的江堤上，望着对岸浦东的一片荒芜，心中涌起一股难以名状的惆怅。</p>
+
+              <p style="text-indent: 2em; margin-bottom: var(--reader-paragraph-spacing);">江面上偶尔驶过几艘货轮，汽笛声在灰蒙蒙的天空下显得格外悠远。他把手插在中山装的口袋里，感受着初秋微凉的江风。身后的城市正在经历一场前所未有的变革，而他似乎被遗忘在了时间的角落。</p>
+
+              <p style="text-indent: 2em; margin-bottom: var(--reader-paragraph-spacing);">"谭同志，"身后传来一个熟悉的声音，"你怎么一个人站在这里？"</p>
+
+              <p style="text-indent: 2em; margin-bottom: var(--reader-paragraph-spacing);">他回过头，看见秀米正沿着江堤朝他走来。她穿着一件洗得发白的蓝色工装，头发被风吹得有些凌乱，但眼睛里却闪烁着一种他从未见过的光芒。</p>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <!-- Page indicator -->
+      <div class="fixed bottom-6 left-0 right-0 z-50 flex justify-center pointer-events-none">
+        <span class="text-xs px-3 py-1 rounded-full" style="
+          color: var(--text-tertiary);
+          font-family: var(--font-sans);
+          font-size: var(--text-xs);
+          background: rgba(253, 251, 247, 0.6);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+        ">第 42 / 328 页</span>
+      </div>
+
+      <!-- Left page turn zone -->
+      <div class="fixed left-0 top-0 bottom-0 w-16 z-40 flex items-center justify-start pl-2 opacity-0 hover:opacity-100 transition-opacity duration-300 cursor-pointer" aria-label="上一页">
+        <div class="w-8 h-8 rounded-full flex items-center justify-center" style="background: rgba(253, 251, 247, 0.7); backdrop-filter: blur(8px);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Right page turn zone -->
+      <div class="fixed right-0 top-0 bottom-0 w-16 z-40 flex items-center justify-end pr-2 opacity-0 hover:opacity-100 transition-opacity duration-300 cursor-pointer" aria-label="下一页">
+        <div class="w-8 h-8 rounded-full flex items-center justify-center" style="background: rgba(253, 251, 247, 0.7); backdrop-filter: blur(8px);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </div>
+      </div>
+
+    </main>
+    <script>lucide.createIcons();</script>
+</body>
+</html>

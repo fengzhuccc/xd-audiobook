@@ -2,7 +2,107 @@
   "color": [
     {
       "name": "start_window_background",
+      "value": "#FAF6ED"
+    },
+    {
+      "name": "app_primary",
+      "value": "#8B6914"
+    },
+    {
+      "name": "app_primary_light",
+      "value": "#B8941E"
+    },
+    {
+      "name": "app_primary_variant",
+      "value": "#6B4F0E"
+    },
+    {
+      "name": "surface_page",
+      "value": "#FAF6ED"
+    },
+    {
+      "name": "surface_card",
       "value": "#FFFFFF"
+    },
+    {
+      "name": "surface_elevated",
+      "value": "#F5F0E3"
+    },
+    {
+      "name": "text_primary",
+      "value": "#2C1810"
+    },
+    {
+      "name": "text_secondary",
+      "value": "#6B5B4F"
+    },
+    {
+      "name": "text_tertiary",
+      "value": "#A89888"
+    },
+    {
+      "name": "text_inverse",
+      "value": "#FFFFFF"
+    },
+    {
+      "name": "border_default",
+      "value": "#E8DFD0"
+    },
+    {
+      "name": "border_divider",
+      "value": "#F0EAE0"
+    },
+    {
+      "name": "reader_bg_warm",
+      "value": "#F5E6CA"
+    },
+    {
+      "name": "reader_text_warm",
+      "value": "#5B4636"
+    },
+    {
+      "name": "reader_bg_white",
+      "value": "#FFFFFF"
+    },
+    {
+      "name": "reader_text_white",
+      "value": "#333333"
+    },
+    {
+      "name": "reader_bg_night",
+      "value": "#1A1A1A"
+    },
+    {
+      "name": "reader_text_night",
+      "value": "#999999"
+    },
+    {
+      "name": "divider_default",
+      "value": "#E8DFD0"
+    },
+    {
+      "name": "icon_default",
+      "value": "#8B6914"
+    },
+    {
+      "name": "icon_secondary",
+      "value": "#A89888"
+    },
+    {
+      "name": "status_bar_bg",
+      "value": "#FAF6ED"
+    },
+    {
+      "name": "progress_bar_bg",
+      "value": "#E8DFD0"
+    },
+    {
+      "name": "progress_bar_fill",
+      "value": "#8B6914"
+    },
+    {
+      "name": "overlay_bg",
+      "value": "#2C1810"
     }
   ]
 }

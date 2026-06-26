@@ -30,6 +30,9 @@
               "ohos.want.action.home"
             ]
           }
+        ],
+        "backgroundModes": [
+          "audioPlayback"
         ]
       }
     ],
@@ -45,6 +48,18 @@
             "resource": "$profile:backup_config"
           }
         ],
+      }
+    ],
+    "requestPermissions": [
+      {
+        "name": "ohos.permission.KEEP_BACKGROUND_RUNNING",
+        "reason": "$string:bg_runner_reason",
+        "usedScene": {
+          "abilities": [
+            "EntryAbility"
+          ],
+          "when": "inuse"
+        }
       }
     ]
   }

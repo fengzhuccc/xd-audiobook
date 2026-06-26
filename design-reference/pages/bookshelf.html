@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>书架首页</title>
+    <style id="theme-vars">
+/* ============================================
+   Harmony Ebook Reader — Brand Design Tokens
+   Style: Warm Bookish / 温暖书卷风
+   ============================================ */
+
+:root {
+  /* ── Primary Palette — Warm Parchment ── */
+  --color-primary: #8B6914;
+  --color-primary-light: #C49A2A;
+  --color-primary-lighter: #E8D5A3;
+  --color-primary-lightest: #F5ECD7;
+  --color-primary-dark: #6B4F0E;
+  --color-primary-darker: #4A370A;
+
+  /* ── Neutral Palette — Warm Grays ── */
+  --color-neutral-50: #FDFBF7;
+  --color-neutral-100: #F7F3EB;
+  --color-neutral-200: #EDE6D8;
+  --color-neutral-300: #DDD3BF;
+  --color-neutral-400: #C4B69A;
+  --color-neutral-500: #A89678;
+  --color-neutral-600: #8A7A60;
+  --color-neutral-700: #6E614C;
+  --color-neutral-800: #554A3A;
+  --color-neutral-900: #3D352A;
+
+  /* ── Semantic Colors ── */
+  --state-success: #5B8C3E;
+  --state-warning: #D4920B;
+  --state-error: #C44D3F;
+  --state-info: #4A7B9D;
+
+  /* ── Surface & Background ── */
+  --surface-page: #FDFBF7;
+  --surface-card: #FFFFFF;
+  --surface-elevated: #FFFFFF;
+  --surface-inset: #F7F3EB;
+  --surface-reader: #FAF6EE;
+
+  /* ── Text Colors ── */
+  --text-primary: #3D352A;
+  --text-secondary: #6E614C;
+  --text-tertiary: #8A7A60;
+  --text-inverse: #FDFBF7;
+  --text-accent: #8B6914;
+  --text-link: #6B4F0E;
+
+  /* ── Border Colors ── */
+  --border-default: #EDE6D8;
+  --border-subtle: #F7F3EB;
+  --border-strong: #C4B69A;
+
+  /* ── Typography ── */
+  --font-sans: "PingFang SC", "HarmonyOS Sans SC", "Noto Sans SC", system-ui, -apple-system, sans-serif;
+  --font-serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", Georgia, serif;
+  --font-mono: "JetBrains Mono", "Fira Code", "SF Mono", monospace;
+
+  --text-xs: 0.6875rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.9375rem;
+  --text-lg: 1.0625rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
+
+  --leading-tight: 1.3;
+  --leading-snug: 1.45;
+  --leading-normal: 1.6;
+  --leading-relaxed: 1.75;
+  --leading-loose: 1.9;
+
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.04em;
+
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* ── Spacing Scale ── */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  /* ── Radius Scale ── */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  /* ── Shadow System ── */
+  --shadow-sm: 0 1px 2px rgba(61, 53, 42, 0.04);
+  --shadow-md: 0 2px 8px rgba(61, 53, 42, 0.05);
+  --shadow-lg: 0 4px 16px rgba(61, 53, 42, 0.05);
+  --shadow-xl: 0 8px 32px rgba(61, 53, 42, 0.05);
+
+  /* ── Reader-specific Tokens ── */
+  --reader-bg: #FAF6EE;
+  --reader-text: #3D352A;
+  --reader-line-height: 1.9;
+  --reader-font-size: 1.0625rem;
+  --reader-letter-spacing: 0.02em;
+  --reader-paragraph-spacing: 1.2em;
+  --reader-max-width: 42rem;
+
+  /* ── Audio Player Tokens ── */
+  --audio-progress-bg: #EDE6D8;
+  --audio-progress-fill: #8B6914;
+  --audio-control-bg: rgba(255, 255, 255, 0.95);
+}
+
+/* ── Dark Mode ── */
+html.dark {
+  --color-primary: #C49A2A;
+  --color-primary-light: #D4AA3A;
+  --color-primary-lighter: #8B6914;
+  --color-primary-lightest: #6B4F0E;
+  --color-primary-dark: #E8D5A3;
+  --color-primary-darker: #F5ECD7;
+
+  --color-neutral-50: #2A2520;
+  --color-neutral-100: #332E27;
+  --color-neutral-200: #3D352A;
+  --color-neutral-300: #554A3A;
+  --color-neutral-400: #6E614C;
+  --color-neutral-500: #8A7A60;
+  --color-neutral-600: #A89678;
+  --color-neutral-700: #C4B69A;
+  --color-neutral-800: #DDD3BF;
+  --color-neutral-900: #EDE6D8;
+
+  --surface-page: #1A1714;
+  --surface-card: #2A2520;
+  --surface-elevated: #332E27;
+  --surface-inset: #222018;
+  --surface-reader: #1E1B16;
+
+  --text-primary: #EDE6D8;
+  --text-secondary: #C4B69A;
+  --text-tertiary: #A89678;
+  --text-inverse: #3D352A;
+  --text-accent: #C49A2A;
+  --text-link: #D4AA3A;
+
+  --border-default: #3D352A;
+  --border-subtle: #2A2520;
+  --border-strong: #554A3A;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.15);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.25);
+  --shadow-xl: 0 8px 32px rgba(0, 0, 0, 0.3);
+
+  --reader-bg: #1E1B16;
+  --reader-text: #DDD3BF;
+  --audio-progress-bg: #3D352A;
+  --audio-progress-fill: #C49A2A;
+  --audio-control-bg: rgba(42, 37, 32, 0.95);
+}
+
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1/dist/index.global.js"></script>
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <style type="text/tailwindcss">
+  @theme inline {
+    --color-primary: var(--color-primary);
+  }
+  @layer base {
+    body { background: var(--color-background); color: var(--color-foreground); }
+    td, th { @apply break-words; word-break: break-all; word-break: auto-phrase; }
+    th { @apply whitespace-nowrap; }
+  }
+    </style>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+    </style>
+</head>
+<body class="min-h-screen font-sans antialiased">
+    <main>
+      <!-- ========== Status Bar ========== -->
+      <div class="flex items-center justify-between px-5 pt-2 pb-1" style="min-height: 44px;">
+        <span class="text-sm font-medium" style="color: var(--text-primary);">9:41</span>
+        <div class="flex items-center gap-1.5">
+          <!-- Signal strength bars -->
+          <svg width="16" height="12" viewBox="0 0 16 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="0" y="9" width="3" height="3" rx="0.5" style="fill: var(--text-primary);"/>
+            <rect x="4.5" y="6" width="3" height="6" rx="0.5" style="fill: var(--text-primary);"/>
+            <rect x="9" y="3" width="3" height="9" rx="0.5" style="fill: var(--text-primary);"/>
+            <rect x="13.5" y="0" width="3" height="12" rx="0.5" style="fill: var(--text-primary);"/>
+          </svg>
+          <!-- Battery indicator -->
+          <svg width="24" height="12" viewBox="0 0 24 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="0.5" y="0.5" width="20" height="11" rx="2" stroke="var(--text-primary)" stroke-width="1" fill="none"/>
+            <rect x="22" y="3.5" width="2" height="5" rx="1" style="fill: var(--text-primary);"/>
+            <rect x="2" y="2" width="16" height="8" rx="1" style="fill: var(--text-primary);"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- ========== Header ========== -->
+      <div class="flex items-center px-5 py-3">
+        <h1 class="text-xl font-semibold" style="color: var(--text-primary);">书架</h1>
+      </div>
+
+      <!-- ========== Content Area ========== -->
+      <div class="px-5 pb-28">
+
+        <!-- Search Bar -->
+        <div class="relative mb-5">
+          <svg class="absolute left-3 top-1/2 -translate-y-1/2" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input
+            type="text"
+            placeholder="搜索书名或作者..."
+            class="w-full py-2.5 pl-10 pr-4 text-sm outline-none transition-colors"
+            style="
+              background-color: var(--surface-inset);
+              border: 1px solid var(--border-default);
+              border-radius: var(--radius-lg);
+              color: var(--text-primary);
+              font-family: var(--font-sans);
+            "
+          />
+        </div>
+
+        <!-- Continue Reading Section -->
+        <div class="mb-6">
+          <h2 class="text-sm font-semibold mb-3" style="color: var(--text-secondary); letter-spacing: var(--tracking-wide);">继续阅读</h2>
+          <a href="#" data-dom-id="open-book-1" class="block rounded-lg overflow-hidden" style="background-color: var(--surface-card); box-shadow: var(--shadow-md); border-radius: var(--radius-md);">
+            <div class="flex overflow-hidden">
+              <!-- Book cover with golden hour amber gradient overlay -->
+              <div class="relative flex-shrink-0" style="width: 100px;">
+                <img
+                  src="../assets/book-cover-1.jpg"
+                  alt="山河入梦"
+                  class="w-full h-full object-cover"
+                  style="height: 140px;"
+                />
+                <!-- Warm amber gradient overlay for "golden hour" feel -->
+                <div class="absolute inset-0" style="background: linear-gradient(to right, rgba(196, 154, 42, 0.15), rgba(196, 154, 42, 0.35));"></div>
+                <!-- Gradient fade into card -->
+                <div class="absolute inset-y-0 right-0" style="width: 24px; background: linear-gradient(to right, transparent, var(--surface-card));"></div>
+              </div>
+              <!-- Book info -->
+              <div class="flex flex-col justify-center px-4 py-3 flex-1 min-w-0">
+                <h3 class="text-base font-semibold truncate" style="color: var(--text-primary);">山河入梦</h3>
+                <p class="text-xs mt-0.5" style="color: var(--text-tertiary);">格非</p>
+                <!-- Progress bar -->
+                <div class="mt-3">
+                  <div class="flex items-center justify-between mb-1">
+                    <span class="text-xs" style="color: var(--text-tertiary);">阅读进度</span>
+                    <span class="text-xs font-medium" style="color: var(--color-primary);">65%</span>
+                  </div>
+                  <div class="w-full h-1.5 rounded-full overflow-hidden" style="background-color: var(--border-default);">
+                    <div class="h-full rounded-full" style="width: 65%; background: linear-gradient(to right, var(--color-primary-light), var(--color-primary));"></div>
+                  </div>
+                </div>
+                <!-- Continue button -->
+                <button class="mt-3 self-start px-5 py-1.5 text-xs font-medium rounded-full transition-colors" style="background-color: var(--color-primary); color: var(--text-inverse);">
+                  继续
+                </button>
+              </div>
+            </div>
+          </a>
+        </div>
+
+        <!-- My Bookshelf Section -->
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-sm font-semibold" style="color: var(--text-secondary); letter-spacing: var(--tracking-wide);">我的书架</h2>
+            <span class="text-xs" style="color: var(--text-tertiary);">共 6 本</span>
+          </div>
+
+          <!-- Book Grid: 2 columns -->
+          <div class="grid grid-cols-2 gap-4">
+
+            <!-- Book 1: 山河入梦 -->
+            <a href="#" class="block">
+              <div class="relative rounded-md overflow-hidden" style="box-shadow: var(--shadow-sm); border-radius: var(--radius-md);">
+                <img src="../assets/book-cover-1.jpg" alt="山河入梦" class="w-full aspect-[3/4] object-cover" />
+                <div class="absolute bottom-0 left-0 right-0 h-1" style="background-color: rgba(0,0,0,0.15);">
+                  <div class="h-full" style="width: 65%; background-color: var(--color-primary);"></div>
+                </div>
+              </div>
+              <p class="mt-2 text-xs font-medium truncate text-center" style="color: var(--text-primary);">山河入梦</p>
+            </a>
+
+            <!-- Book 2: 百年孤独 -->
+            <a href="#" class="block">
+              <div class="relative rounded-md overflow-hidden" style="box-shadow: var(--shadow-sm); border-radius: var(--radius-md);">
+                <img src="../assets/book-cover-2.jpg" alt="百年孤独" class="w-full aspect-[3/4] object-cover" />
+                <div class="absolute bottom-0 left-0 right-0 h-1" style="background-color: rgba(0,0,0,0.15);">
+                  <div class="h-full" style="width: 30%; background-color: var(--color-primary);"></div>
+                </div>
+              </div>
+              <p class="mt-2 text-xs font-medium truncate text-center" style="color: var(--text-primary);">百年孤独</p>
+            </a>
+
+            <!-- Book 3: 茶经 -->
+            <a href="#" class="block">
+              <div class="relative rounded-md overflow-hidden" style="box-shadow: var(--shadow-sm); border-radius: var(--radius-md);">
+                <img src="../assets/book-cover-3.jpg" alt="茶经" class="w-full aspect-[3/4] object-cover" />
+                <div class="absolute bottom-0 left-0 right-0 h-1" style="background-color: rgba(0,0,0,0.15);">
+                  <div class="h-full" style="width: 45%; background-color: var(--color-primary);"></div>
+                </div>
+              </div>
+              <p class="mt-2 text-xs font-medium truncate text-center" style="color: var(--text-primary);">茶经</p>
+            </a>
+
+            <!-- Book 4: 人间词话 (CSS gradient placeholder) -->
+            <a href="#" class="block">
+              <div class="relative rounded-md overflow-hidden" style="box-shadow: var(--shadow-sm); border-radius: var(--radius-md);">
+                <div class="w-full aspect-[3/4] flex items-center justify-center" style="background: linear-gradient(135deg, #8B6914, #C49A2A, #E8D5A3);">
+                  <span class="text-lg font-semibold" style="color: var(--text-inverse); font-family: var(--font-serif);">人间词话</span>
+                </div>
+                <div class="absolute bottom-0 left-0 right-0 h-1" style="background-color: rgba(0,0,0,0.15);">
+                  <div class="h-full" style="width: 20%; background-color: var(--color-primary);"></div>
+                </div>
+              </div>
+              <p class="mt-2 text-xs font-medium truncate text-center" style="color: var(--text-primary);">人间词话</p>
+            </a>
+
+            <!-- Book 5: 浮生六记 (CSS gradient placeholder) -->
+            <a href="#" class="block">
+              <div class="relative rounded-md overflow-hidden" style="box-shadow: var(--shadow-sm); border-radius: var(--radius-md);">
+                <div class="w-full aspect-[3/4] flex items-center justify-center" style="background: linear-gradient(135deg, #6E614C, #A89678, #DDD3BF);">
+                  <span class="text-lg font-semibold" style="color: var(--text-inverse); font-family: var(--font-serif);">浮生六记</span>
+                </div>
+                <div class="absolute bottom-0 left-0 right-0 h-1" style="background-color: rgba(0,0,0,0.15);">
+                  <div class="h-full" style="width: 55%; background-color: var(--color-primary);"></div>
+                </div>
+              </div>
+              <p class="mt-2 text-xs font-medium truncate text-center" style="color: var(--text-primary);">浮生六记</p>
+            </a>
+
+            <!-- Book 6: 围城 (CSS gradient placeholder) -->
+            <a href="#" class="block">
+              <div class="relative rounded-md overflow-hidden" style="box-shadow: var(--shadow-sm); border-radius: var(--radius-md);">
+                <div class="w-full aspect-[3/4] flex items-center justify-center" style="background: linear-gradient(135deg, #554A3A, #8A7A60, #C4B69A);">
+                  <span class="text-lg font-semibold" style="color: var(--text-inverse); font-family: var(--font-serif);">围城</span>
+                </div>
+                <div class="absolute bottom-0 left-0 right-0 h-1" style="background-color: rgba(0,0,0,0.15);">
+                  <div class="h-full" style="width: 10%; background-color: var(--color-primary);"></div>
+                </div>
+              </div>
+              <p class="mt-2 text-xs font-medium truncate text-center" style="color: var(--text-primary);">围城</p>
+            </a>
+
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ========== Bottom Tab Bar ========== -->
+      <div class="fixed bottom-0 left-0 right-0 flex items-center justify-around" style="background-color: var(--surface-page); border-top: 1px solid var(--border-default); padding-bottom: env(safe-area-inset-bottom, 8px);">
+
+        <!-- Tab: 书架 (Bookshelf) - ACTIVE -->
+        <button class="flex flex-col items-center gap-0.5 py-2 px-4 transition-colors" data-dom-id="tab-bookshelf" style="color: var(--color-primary);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 4.5C4 3.67 4.67 3 5.5 3H12V21H5.5C4.67 21 4 20.33 4 19.5V4.5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 3H18.5C19.33 3 20 3.67 20 4.5V19.5C20 20.33 19.33 21 18.5 21H12V3Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 3V21" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M7 7H9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M7 10H9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M15 7H17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M15 10H17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <span class="text-xs font-medium">书架</span>
+        </button>
+
+        <!-- Tab: 书库 (Library) - INACTIVE -->
+        <button class="flex flex-col items-center gap-0.5 py-2 px-4 transition-colors" data-dom-id="tab-library" style="color: var(--text-tertiary);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 6C3 4.9 3.9 4 5 4H19C20.1 4 21 4.9 21 6V18C21 19.1 20.1 20 19 20H5C3.9 20 3 19.1 3 18V6Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M3 9H21" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M9 4V9" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M15 4V9" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M8 13H16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M8 17H13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <span class="text-xs font-medium">书库</span>
+        </button>
+
+        <!-- Tab: 设置 (Settings) - INACTIVE -->
+        <button class="flex flex-col items-center gap-0.5 py-2 px-4 transition-colors" data-dom-id="tab-settings" style="color: var(--text-tertiary);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M12 1V3M12 21V23M4.22 4.22L5.64 5.64M18.36 18.36L19.78 19.78M1 12H3M21 12H23M4.22 19.78L5.64 18.36M18.36 5.64L19.78 4.22" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <span class="text-xs font-medium">设置</span>
+        </button>
+
+      </div>
+
+    </main>
+    <script>lucide.createIcons();</script>
+</body>
+</html>

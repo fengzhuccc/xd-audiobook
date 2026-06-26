@@ -2,15 +2,19 @@
   "string": [
     {
       "name": "module_desc",
-      "value": "module description"
+      "value": "书声 - 电子书阅读与朗读"
     },
     {
       "name": "EntryAbility_desc",
-      "value": "description"
+      "value": "书声主入口"
     },
     {
       "name": "EntryAbility_label",
-      "value": "label"
+      "value": "书声"
+    },
+    {
+      "name": "bg_runner_reason",
+      "value": "朗读功能需要后台持续运行以提供听书服务"
     }
   ]
 }
