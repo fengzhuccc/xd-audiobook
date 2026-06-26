@@ -185,22 +185,23 @@ struct AudioPlayerPage {
       Scroll() {
         Column() {
           // 封面展示区
-          Column()
-            .width(180)
-            .height(180)
-            .borderRadius(16)
-            .linearGradient({
-              angle: 135,
-              colors: [AppTheme.primaryLight, AppTheme.primary]
-            })
-            .justifyContent(FlexAlign.Center)
-            .shadow({ radius: 16, color: 'rgba(139,105,20,0.2)', offsetY: 8 })
-            .overlay(
-              Text(this.bookTitle.charAt(0))
-                .fontSize(48)
-                .fontColor(Color.White)
-                .fontWeight(FontWeight.Bold)
-            )
+          Stack() {
+            Column()
+              .width('100%')
+              .height('100%')
+              .borderRadius(16)
+              .linearGradient({
+                angle: 135,
+                colors: [AppTheme.primaryLight, AppTheme.primary]
+              })
+              .shadow({ radius: 16, color: 'rgba(139,105,20,0.2)', offsetY: 8 })
+            Text(this.bookTitle.charAt(0))
+              .fontSize(48)
+              .fontColor(Color.White)
+              .fontWeight(FontWeight.Bold)
+          }
+          .width(180)
+          .height(180)
           .margin({ bottom: 24 })
 
           // 文本高亮区域

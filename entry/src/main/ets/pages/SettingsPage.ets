@@ -6,6 +6,11 @@ import { PreferencesService } from '../service/PreferencesService';
 import { FormatUtil } from '../common/utils/FormatUtil';
 import { LogUtil } from '../common/utils/LogUtil';
 
+interface OptionItem<T> {
+  label: string;
+  value: T;
+}
+
 @Component
 export struct SettingsPage {
   // 阅读设置
@@ -24,20 +29,20 @@ export struct SettingsPage {
   @State storageUsed: string = '计算中...';
   
   // 行距选项
-  private lineHeights: { label: string; value: number }[] = [
+  private lineHeights: OptionItem<number>[] = [
     { label: '紧凑', value: 1.5 },
     { label: '适中', value: 1.9 },
     { label: '宽松', value: 2.2 },
   ];
   
   // 翻页模式
-  private flipModes: { label: string; value: string }[] = [
+  private flipModes: OptionItem<string>[] = [
     { label: '点击翻页', value: 'click' },
     { label: '滑动翻页', value: 'slide' },
   ];
   
   // 字体选项
-  private fontFamilies: { label: string; value: string }[] = [
+  private fontFamilies: OptionItem<string>[] = [
     { label: '宋体', value: 'serif' },
     { label: '黑体', value: 'sans' },
     { label: '楷体', value: 'kai' },
@@ -166,7 +171,7 @@ export struct SettingsPage {
                 .fontColor(AppTheme.textSecondary)
                 .layoutWeight(1)
               Row({ space: 8 }) {
-                ForEach(this.lineHeights, (item: { label: string; value: number }) => {
+                ForEach(this.lineHeights, (item: OptionItem<number>) => {
                   Text(item.label)
                     .fontSize(13)
                     .fontColor(this.lineHeight === item.value ? Color.White : AppTheme.textSecondary)
@@ -192,7 +197,7 @@ export struct SettingsPage {
                 .fontColor(AppTheme.textSecondary)
                 .layoutWeight(1)
               Row({ space: 8 }) {
-                ForEach(this.flipModes, (item: { label: string; value: string }) => {
+                ForEach(this.flipModes, (item: OptionItem<string>) => {
                   Text(item.label)
                     .fontSize(13)
                     .fontColor(this.flipMode === item.value ? Color.White : AppTheme.textSecondary)
@@ -259,7 +264,7 @@ export struct SettingsPage {
                 .fontColor(AppTheme.textSecondary)
                 .layoutWeight(1)
               Row({ space: 8 }) {
-                ForEach(this.fontFamilies, (item: { label: string; value: string }) => {
+                ForEach(this.fontFamilies, (item: OptionItem<string>) => {
                   Text(item.label)
                     .fontSize(13)
                     .fontColor(this.fontFamily === item.value ? Color.White : AppTheme.textSecondary)

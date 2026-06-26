@@ -22,14 +22,14 @@ export struct BookshelfPage {
     const bookDb = AppStorage.get('bookDb') as BookDatabase;
     if (!bookDb) return;
 
-    bookDb.getAllBooks().then((list) => {
+    bookDb.getAllBooks().then((list: BookInfo[]) => {
       this.books = list;
       // 找到最近阅读的书
       if (list.length > 0) {
-        const bookWithProgress = list.find((b) => b.lastReadTime && b.lastReadTime > 0);
+        const bookWithProgress = list.find((b: BookInfo) => b.lastReadTime && b.lastReadTime > 0);
         if (bookWithProgress) {
           this.recentBook = bookWithProgress;
-          bookDb.getProgressByBookId(bookWithProgress.id!).then((progress) => {
+          bookDb.getProgressByBookId(bookWithProgress.id!).then((progress: BookProgress | null) => {
             this.recentProgress = progress;
           });
         }
@@ -95,21 +95,22 @@ export struct BookshelfPage {
               // 继续阅读卡片
               Row() {
                 // 封面（使用带渐变的占位）
-                Column()
-                  .width(64)
-                  .height(88)
-                  .borderRadius(6)
-                  .linearGradient({
-                    angle: 135,
-                    colors: [AppTheme.primaryLight, AppTheme.primary]
-                  })
-                  .justifyContent(FlexAlign.Center)
-                  .overlay(
-                    Text(this.recentBook.title.charAt(0))
-                      .fontSize(24)
-                      .fontColor(Color.White)
-                      .fontWeight(FontWeight.Bold)
-                  )
+                Stack() {
+                  Column()
+                    .width('100%')
+                    .height('100%')
+                    .borderRadius(6)
+                    .linearGradient({
+                      angle: 135,
+                      colors: [AppTheme.primaryLight, AppTheme.primary]
+                    })
+                  Text((this.recentBook as BookInfo).title.charAt(0))
+                    .fontSize(24)
+                    .fontColor(Color.White)
+                    .fontWeight(FontWeight.Bold)
+                }
+                .width(64)
+                .height(88)
 
                 Column() {
                   Text(this.recentBook.title)

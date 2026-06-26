@@ -22,7 +22,7 @@ export struct LibraryPage {
   private loadBooks(): void {
     const bookDb = AppStorage.get('bookDb') as BookDatabase;
     if (!bookDb) return;
-    bookDb.getAllBooks().then((list) => {
+    bookDb.getAllBooks().then((list: BookInfo[]) => {
       this.books = list;
     });
   }
