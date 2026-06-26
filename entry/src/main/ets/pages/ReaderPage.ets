@@ -1,4 +1,4 @@
-import { router, promptAction, AppStorageV2 } from '@kit.ArkUI';
+import { router, promptAction, AppStorageV2, display } from '@kit.ArkUI';
 import { bookParser, readerCore, ReadPageComponent } from '@kit.ReaderKit';
 import { common } from '@kit.AbilityKit';
 import { AppTheme } from '../common/theme/AppTheme';
@@ -119,13 +119,19 @@ struct ReaderPage {
     const theme = this.getThemeByKey(this.readerSettings.theme);
     if (!theme) return;
     try {
-      const pageConfig = {
+      const pageConfig: readerCore.ReaderSetting = {
+        fontName: '系统字体',
+        fontPath: '',
         fontSize: this.readerSettings.fontSize,
+        fontWeight: 400,
         fontColor: theme.fontColor,
-        themeColor: theme.backgroundColor,
         lineHeight: this.readerSettings.lineHeight,
+        nightMode: theme.name === '夜间',
+        themeColor: theme.backgroundColor,
+        themeBgImg: '',
         flipMode: this.readerSettings.flipMode === 'slide' ? '1' : '0',
-      } as unknown as readerCore.ReaderSetting;
+        scaledDensity: display.getDefaultDisplaySync().scaledDensity > 0 ? display.getDefaultDisplaySync().scaledDensity : 1,
+      };
       this.readerController.setPageConfig(pageConfig);
     } catch (err) {
       LogUtil.error(`Failed to apply settings: ${JSON.stringify(err)}`);
