@@ -51,6 +51,13 @@ export struct SettingsPage {
   
   // 语速选项
   private speeds: number[] = [0.75, 1.0, 1.25, 1.5, 2.0];
+
+  // 主题选项
+  private themeOptions: { key: string; theme: ReaderTheme }[] = [
+    { key: 'warm', theme: READER_THEMES.warm },
+    { key: 'white', theme: READER_THEMES.white },
+    { key: 'night', theme: READER_THEMES.night },
+  ];
   
   aboutToAppear(): void {
     this.loadSettings();
@@ -91,8 +98,6 @@ export struct SettingsPage {
       fontFamily: this.fontFamily as 'serif' | 'sans' | 'kai',
     };
     await prefService.saveReaderSettings(settings);
-    // 通知阅读器刷新（通过 AppStorage）
-    AppStorage.setOrCreate('readerSettingsChanged', Date.now());
   }
   
   private async saveTtsSettings(): Promise<void> {
@@ -112,13 +117,6 @@ export struct SettingsPage {
     this.storageUsed = '128 MB / 可用 3.8 GB';
   }
 
-  private getThemeByKey(key: string): ReaderTheme | null {
-    if (key === 'warm') return READER_THEMES.warm;
-    if (key === 'white') return READER_THEMES.white;
-    if (key === 'night') return READER_THEMES.night;
-    return null;
-  }
-  
   build() {
     Column() {
       Row().height(48).width('100%').backgroundColor(AppTheme.surfacePage);
@@ -231,31 +229,30 @@ export struct SettingsPage {
                 .fontColor(AppTheme.textSecondary)
                 .layoutWeight(1)
               Row({ space: 12 }) {
-                ForEach(Object.keys(READER_THEMES), (key: string) => {
-                  const theme: ReaderTheme | null = this.getThemeByKey(key);
+                ForEach(this.themeOptions, (item: { key: string; theme: ReaderTheme }) => {
                   Column({ space: 4 }) {
                     Stack() {
                       Column()
                         .width(40)
                         .height(40)
                         .borderRadius(8)
-                        .backgroundColor(theme ? theme.backgroundColor : AppTheme.surfaceInset)
-                        .border(this.readerTheme === key ?
+                        .backgroundColor(item.theme.backgroundColor)
+                        .border(this.readerTheme === item.key ?
                           { width: 2, color: AppTheme.primary } :
                           { width: 1, color: AppTheme.borderDefault }
                         )
-                      if (this.readerTheme === key) {
+                      if (this.readerTheme === item.key) {
                         Image($r('app.media.ic_check'))
                           .width(16).height(16).fillColor(AppTheme.primary)
                       }
                     }
-                    Text(theme ? theme.name : '')
+                    Text(item.theme.name)
                       .fontSize(11)
-                      .fontColor(this.readerTheme === key ? AppTheme.primary : AppTheme.textTertiary)
+                      .fontColor(this.readerTheme === item.key ? AppTheme.primary : AppTheme.textTertiary)
                   }
                   .alignItems(HorizontalAlign.Center)
                   .onClick(() => {
-                    this.readerTheme = key;
+                    this.readerTheme = item.key;
                     this.saveReaderSettings();
                   })
                 })

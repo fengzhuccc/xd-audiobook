@@ -15,7 +15,7 @@ export class BookDatabase {
   private static instance: BookDatabase | null = null;
   private store: relationalStore.RdbStore | null = null;
 
-  private constructor() {}
+  constructor() {}
 
   static getInstance(context?: common.UIAbilityContext): BookDatabase {
     if (!BookDatabase.instance) {

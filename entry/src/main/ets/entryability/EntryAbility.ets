@@ -21,18 +21,18 @@ export default class EntryAbility extends UIAbility {
     const prefService = PreferencesService.getInstance();
     prefService.init(this.context).then(() => {
       AppStorageV2.connect(PreferencesService, 'prefService', () => prefService);
-      LogUtil.info(TAG, 'PreferencesService initialized');
+      LogUtil.info(`${TAG}: PreferencesService initialized`);
     }).catch((err: Error) => {
-      LogUtil.error(TAG, `PreferencesService init failed: ${err.message}`);
+      LogUtil.error(`${TAG}: PreferencesService init failed: ${err.message}`);
     });
 
     // Initialize Book Database
     const bookDb = BookDatabase.getInstance();
     bookDb.init(this.context).then(() => {
       AppStorageV2.connect(BookDatabase, 'bookDb', () => bookDb);
-      LogUtil.info(TAG, 'BookDatabase initialized');
+      LogUtil.info(`${TAG}: BookDatabase initialized`);
     }).catch((err: Error) => {
-      LogUtil.error(TAG, `BookDatabase init failed: ${err.message}`);
+      LogUtil.error(`${TAG}: BookDatabase init failed: ${err.message}`);
     });
   }
 

@@ -36,7 +36,7 @@ export class PreferencesService {
   private static instance: PreferencesService | null = null;
   private prefInstance: preferences.Preferences | null = null;
 
-  private constructor() {}
+  constructor() {}
 
   static getInstance(context?: common.UIAbilityContext): PreferencesService {
     if (!PreferencesService.instance) {

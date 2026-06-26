@@ -124,7 +124,6 @@ struct ReaderPage {
         fontColor: theme.fontColor,
         themeColor: theme.backgroundColor,
         lineHeight: this.readerSettings.lineHeight,
-        letterSpacing: this.readerSettings.letterSpacing,
         flipMode: this.readerSettings.flipMode === 'slide' ? '1' : '0',
       };
       this.readerController.setPageConfig(pageConfig);
@@ -244,7 +243,7 @@ struct ReaderPage {
         .width('100%')
         .backgroundColor(Color.Transparent)
         .backdropBlur(16)
-        .backgroundEffect({ blur: 16, saturation: 0.8 })
+        .backgroundEffect({ radius: 16, saturation: 0.8 })
         .padding({ top: 48 })
         .animation({ duration: 200 })
 
