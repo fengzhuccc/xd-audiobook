@@ -74,7 +74,7 @@ struct AudioPlayerPage {
       this.sentences = this.plainTextContent.split(/[。！？\n]/g).filter((s) => s.trim().length > 0);
 
       // 初始化并开始朗读
-      await this.ttsService.init(context, bookInfo.bookTitle, bookInfo.bookCreator);
+      await this.ttsService.init(context, bookInfo.bookTitle, bookInfo.bookCreator || '');
       await this.ttsService.startReading(handler, this.currentSpineIndex);
       this.ttsState = this.ttsService.getState();
 
@@ -192,7 +192,7 @@ struct AudioPlayerPage {
               .borderRadius(16)
               .linearGradient({
                 angle: 135,
-                colors: [AppTheme.primaryLight, AppTheme.primary]
+                colors: [[AppTheme.primaryLight, 0], [AppTheme.primary, 1]]
               })
               .shadow({ radius: 16, color: 'rgba(139,105,20,0.2)', offsetY: 8 })
             Text(this.bookTitle.charAt(0))
@@ -259,19 +259,17 @@ struct AudioPlayerPage {
           .margin({ bottom: 8 })
 
           // 进度条
-          Row() {
+          Stack({ alignContent: Alignment.Start }) {
             Row()
               .height(4)
               .borderRadius(2)
               .backgroundColor(AppTheme.primaryLight)
-              .layoutWeight(1)
-              .overlay(
-                Row()
-                  .height(4)
-                  .borderRadius(2)
-                  .backgroundColor(AppTheme.primary)
-                  .width(`${((this.currentSpineIndex + 1) / Math.max(this.totalChapters, 1)) * 100}%`)
-              )
+              .width('100%')
+            Row()
+              .height(4)
+              .borderRadius(2)
+              .backgroundColor(AppTheme.primary)
+              .width(`${((this.currentSpineIndex + 1) / Math.max(this.totalChapters, 1)) * 100}%`)
           }
           .width('100%')
           .margin({ bottom: 32 })

@@ -1,3 +1,5 @@
+import { ReaderSettings } from '../model/ReaderSettings';
+
 // 阅读器默认配置
 export interface ReaderDefaults {
   FONT_SIZE: number;
@@ -63,3 +65,14 @@ export const TTS_DEFAULTS: TtsDefaults = {
 
 // 书架网格
 export const BOOKSHELF_COLUMNS = 2;
+
+export function createDefaultReaderSettings(): ReaderSettings {
+  return {
+    fontSize: READER_DEFAULTS.FONT_SIZE,
+    lineHeight: READER_DEFAULTS.LINE_HEIGHT,
+    letterSpacing: READER_DEFAULTS.LETTER_SPACING,
+    flipMode: READER_DEFAULTS.FLIP_MODE as 'click' | 'slide',
+    theme: READER_DEFAULTS.THEME as 'warm' | 'white' | 'night',
+    fontFamily: READER_DEFAULTS.FONT_FAMILY as 'serif' | 'sans' | 'kai',
+  };
+}

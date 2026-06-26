@@ -1,8 +1,8 @@
-import { router, promptAction } from '@kit.ArkUI';
+import { router, promptAction, AppStorageV2 } from '@kit.ArkUI';
 import { bookParser, readerCore, ReadPageComponent } from '@kit.ReaderKit';
 import { common } from '@kit.AbilityKit';
 import { AppTheme } from '../common/theme/AppTheme';
-import { READER_THEMES, READER_DEFAULTS } from '../common/constants/ReaderConstants';
+import { READER_THEMES, ReaderTheme, createDefaultReaderSettings } from '../common/constants/ReaderConstants';
 import { BookInfo } from '../common/model/BookInfo';
 import { BookProgress } from '../common/model/BookProgress';
 import { ReaderSettings } from '../common/model/ReaderSettings';
@@ -23,7 +23,7 @@ struct ReaderPage {
   @State showToolbar: boolean = true;
   @State currentPage: number = 0;
   @State totalPages: number = 0;
-  @State readerSettings: ReaderSettings = { ...READER_DEFAULTS } as ReaderSettings;
+  @State readerSettings: ReaderSettings = createDefaultReaderSettings();
 
   // 阅读器控制器
   private readerController: readerCore.ReaderComponentController = new readerCore.ReaderComponentController();
@@ -61,7 +61,7 @@ struct ReaderPage {
   }
 
   private async loadSettings(): Promise<void> {
-    const prefService = AppStorage.get('prefService') as PreferencesService;
+    const prefService = AppStorageV2.connect(PreferencesService, 'prefService') as PreferencesService;
     if (prefService) {
       this.readerSettings = await prefService.getReaderSettings();
     }
@@ -77,7 +77,7 @@ struct ReaderPage {
       this.bookTitle = bookInfo.bookTitle;
 
       // 获取已保存的进度
-      const bookDb = AppStorage.get('bookDb') as BookDatabase;
+      const bookDb = AppStorageV2.connect(BookDatabase, 'bookDb') as BookDatabase;
       let savedSpineIndex = 0;
       let savedDomPos = '';
       if (bookDb && this.bookId) {
@@ -108,17 +108,26 @@ struct ReaderPage {
     }
   }
 
+  private getThemeByKey(key: string): ReaderTheme | null {
+    if (key === 'warm') return READER_THEMES.warm;
+    if (key === 'white') return READER_THEMES.white;
+    if (key === 'night') return READER_THEMES.night;
+    return null;
+  }
+
   private applySettings(): void {
-    const theme = READER_THEMES[this.readerSettings.theme];
+    const theme = this.getThemeByKey(this.readerSettings.theme);
+    if (!theme) return;
     try {
-      this.readerController.setPageConfig({
+      const pageConfig: readerCore.ReaderSetting = {
         fontSize: this.readerSettings.fontSize,
         fontColor: theme.fontColor,
-        backgroundColor: theme.backgroundColor,
+        themeColor: theme.backgroundColor,
         lineHeight: this.readerSettings.lineHeight,
         letterSpacing: this.readerSettings.letterSpacing,
-        flipMode: this.readerSettings.flipMode === 'click' ? 0 : 1,
-      });
+        flipMode: this.readerSettings.flipMode === 'slide' ? '1' : '0',
+      };
+      this.readerController.setPageConfig(pageConfig);
     } catch (err) {
       LogUtil.error(`Failed to apply settings: ${JSON.stringify(err)}`);
     }
@@ -127,7 +136,7 @@ struct ReaderPage {
   private saveProgress(): void {
     if (!this.bookId) return;
     try {
-      const bookDb = AppStorage.get('bookDb') as BookDatabase;
+      const bookDb = AppStorageV2.connect(BookDatabase, 'bookDb') as BookDatabase;
       if (bookDb) {
         const progress: BookProgress = {
           bookId: this.bookId,

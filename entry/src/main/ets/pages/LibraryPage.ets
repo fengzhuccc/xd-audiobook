@@ -1,10 +1,11 @@
-import { promptAction } from '@kit.ArkUI';
+import { promptAction, AppStorageV2 } from '@kit.ArkUI';
 import { AppTheme } from '../common/theme/AppTheme';
 import { BookInfo } from '../common/model/BookInfo';
 import { SUPPORTED_FORMATS } from '../common/constants/AppConstants';
 import { FormatUtil } from '../common/utils/FormatUtil';
 import { FileImportService } from '../service/FileImportService';
 import { BookParseService } from '../service/BookParseService';
+import { BookDatabase } from '../service/BookDatabase';
 import { LogUtil } from '../common/utils/LogUtil';
 import { common } from '@kit.AbilityKit';
 
@@ -20,7 +21,7 @@ export struct LibraryPage {
   }
 
   private loadBooks(): void {
-    const bookDb = AppStorage.get('bookDb') as BookDatabase;
+    const bookDb = AppStorageV2.connect(BookDatabase, 'bookDb') as BookDatabase;
     if (!bookDb) return;
     bookDb.getAllBooks().then((list: BookInfo[]) => {
       this.books = list;
@@ -38,7 +39,7 @@ export struct LibraryPage {
         return;
       }
 
-      const bookDb = AppStorage.get('bookDb') as BookDatabase;
+      const bookDb = AppStorageV2.connect(BookDatabase, 'bookDb') as BookDatabase;
       if (!bookDb) {
         this.isImporting = false;
         return;
@@ -61,7 +62,7 @@ export struct LibraryPage {
   }
 
   private async deleteBook(book: BookInfo): Promise<void> {
-    const bookDb = AppStorage.get('bookDb') as BookDatabase;
+    const bookDb = AppStorageV2.connect(BookDatabase, 'bookDb') as BookDatabase;
     if (!bookDb) return;
 
     try {

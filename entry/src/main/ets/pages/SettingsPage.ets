@@ -1,5 +1,6 @@
+import { AppStorageV2 } from '@kit.ArkUI';
 import { AppTheme } from '../common/theme/AppTheme';
-import { READER_THEMES, READER_DEFAULTS, TTS_DEFAULTS } from '../common/constants/ReaderConstants';
+import { READER_THEMES, READER_DEFAULTS, TTS_DEFAULTS, ReaderTheme } from '../common/constants/ReaderConstants';
 import { ReaderSettings } from '../common/model/ReaderSettings';
 import { TtsSettings } from '../common/model/TtsSettings';
 import { PreferencesService } from '../service/PreferencesService';
@@ -57,7 +58,7 @@ export struct SettingsPage {
   }
   
   private async loadSettings(): Promise<void> {
-    const prefService = AppStorage.get('prefService') as PreferencesService;
+    const prefService = AppStorageV2.connect(PreferencesService, 'prefService') as PreferencesService;
     if (!prefService) return;
     
     try {
@@ -78,7 +79,7 @@ export struct SettingsPage {
   }
   
   private async saveReaderSettings(): Promise<void> {
-    const prefService = AppStorage.get('prefService') as PreferencesService;
+    const prefService = AppStorageV2.connect(PreferencesService, 'prefService') as PreferencesService;
     if (!prefService) return;
     
     const settings: ReaderSettings = {
@@ -95,7 +96,7 @@ export struct SettingsPage {
   }
   
   private async saveTtsSettings(): Promise<void> {
-    const prefService = AppStorage.get('prefService') as PreferencesService;
+    const prefService = AppStorageV2.connect(PreferencesService, 'prefService') as PreferencesService;
     if (!prefService) return;
     
     const settings: TtsSettings = {
@@ -109,6 +110,13 @@ export struct SettingsPage {
   private calculateStorage(): void {
     // 简单占位，实际项目中遍历 filesDir/books 和 filesDir/covers 计算总大小
     this.storageUsed = '128 MB / 可用 3.8 GB';
+  }
+
+  private getThemeByKey(key: string): ReaderTheme | null {
+    if (key === 'warm') return READER_THEMES.warm;
+    if (key === 'white') return READER_THEMES.white;
+    if (key === 'night') return READER_THEMES.night;
+    return null;
   }
   
   build() {
@@ -224,13 +232,14 @@ export struct SettingsPage {
                 .layoutWeight(1)
               Row({ space: 12 }) {
                 ForEach(Object.keys(READER_THEMES), (key: string) => {
+                  const theme: ReaderTheme | null = this.getThemeByKey(key);
                   Column({ space: 4 }) {
                     Stack() {
                       Column()
                         .width(40)
                         .height(40)
                         .borderRadius(8)
-                        .backgroundColor(READER_THEMES[key].backgroundColor)
+                        .backgroundColor(theme ? theme.backgroundColor : AppTheme.surfaceInset)
                         .border(this.readerTheme === key ?
                           { width: 2, color: AppTheme.primary } :
                           { width: 1, color: AppTheme.borderDefault }
@@ -240,7 +249,7 @@ export struct SettingsPage {
                           .width(16).height(16).fillColor(AppTheme.primary)
                       }
                     }
-                    Text(READER_THEMES[key].name)
+                    Text(theme ? theme.name : '')
                       .fontSize(11)
                       .fontColor(this.readerTheme === key ? AppTheme.primary : AppTheme.textTertiary)
                   }

@@ -1,4 +1,4 @@
-import { router } from '@kit.ArkUI';
+import { router, AppStorageV2 } from '@kit.ArkUI';
 import { AppTheme } from '../common/theme/AppTheme';
 import { BookInfo } from '../common/model/BookInfo';
 import { BookProgress } from '../common/model/BookProgress';
@@ -19,7 +19,7 @@ export struct BookshelfPage {
   }
 
   private loadBooks(): void {
-    const bookDb = AppStorage.get('bookDb') as BookDatabase;
+    const bookDb = AppStorageV2.connect(BookDatabase, 'bookDb') as BookDatabase;
     if (!bookDb) return;
 
     bookDb.getAllBooks().then((list: BookInfo[]) => {
@@ -102,7 +102,7 @@ export struct BookshelfPage {
                     .borderRadius(6)
                     .linearGradient({
                       angle: 135,
-                      colors: [AppTheme.primaryLight, AppTheme.primary]
+                      colors: [[AppTheme.primaryLight, 0], [AppTheme.primary, 1]]
                     })
                   Text((this.recentBook as BookInfo).title.charAt(0))
                     .fontSize(24)
@@ -125,21 +125,19 @@ export struct BookshelfPage {
                     .margin({ top: 4 })
 
                   // 进度条
-                  Row() {
+                  Stack({ alignContent: Alignment.Start }) {
                     Row()
                       .height(4)
                       .borderRadius(2)
                       .backgroundColor(AppTheme.primaryLight)
-                      .layoutWeight(1)
-                      .overlay(
-                        Row()
-                          .height(4)
-                          .borderRadius(2)
-                          .backgroundColor(AppTheme.primary)
-                          .width(this.recentProgress ?
-                            `${(this.recentProgress.spineIndex / Math.max(this.recentBook.totalSpines || 1, 1)) * 100}%`
-                            : '0%')
-                      )
+                      .width('100%')
+                    Row()
+                      .height(4)
+                      .borderRadius(2)
+                      .backgroundColor(AppTheme.primary)
+                      .width(this.recentProgress ?
+                        `${(this.recentProgress.spineIndex / Math.max((this.recentBook as BookInfo).totalSpines || 1, 1)) * 100}%`
+                        : '0%')
                   }
                   .width('100%')
                   .margin({ top: 12 })
@@ -267,15 +265,15 @@ export struct BookshelfPage {
   /**
    * 根据书名生成渐变色（用于无封面占位）
    */
-  private getGradientForBook(book: BookInfo): string[] {
+  private getGradientForBook(book: BookInfo): [ResourceColor, number][] {
     const hash = book.title.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
-    const palettes: string[][] = [
-      [AppTheme.primary, AppTheme.primaryLight],       // 金棕
-      ['#6E614C', '#A89678'],                            // 暖灰
-      ['#4A7B9D', '#7BAFC9'],                            // 青蓝
-      ['#5B8C3E', '#8DB86B'],                            // 绿色
-      ['#8B6914', '#C49A2A'],                            // 琥珀
-      ['#6B4F0E', '#8B6914'],                            // 深棕
+    const palettes: [ResourceColor, number][][] = [
+      [[AppTheme.primary, 0], [AppTheme.primaryLight, 1]],       // 金棕
+      [['#6E614C', 0], ['#A89678', 1]],                            // 暖灰
+      [['#4A7B9D', 0], ['#7BAFC9', 1]],                            // 青蓝
+      [['#5B8C3E', 0], ['#8DB86B', 1]],                            // 绿色
+      [['#8B6914', 0], ['#C49A2A', 1]],                            // 琥珀
+      [['#6B4F0E', 0], ['#8B6914', 1]],                            // 深棕
     ];
     return palettes[hash % palettes.length];
   }

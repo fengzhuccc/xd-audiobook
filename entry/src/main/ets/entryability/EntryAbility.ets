@@ -1,6 +1,6 @@
 import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
-import { window, AppStorage } from '@kit.ArkUI';
+import { window, AppStorageV2 } from '@kit.ArkUI';
 import { PreferencesService } from '../service/PreferencesService';
 import { BookDatabase } from '../service/BookDatabase';
 import { LogUtil } from '../common/utils/LogUtil';
@@ -20,7 +20,7 @@ export default class EntryAbility extends UIAbility {
     // Initialize Preferences (reader settings & TTS settings)
     const prefService = PreferencesService.getInstance();
     prefService.init(this.context).then(() => {
-      AppStorage.setOrCreate('prefService', prefService);
+      AppStorageV2.connect(PreferencesService, 'prefService', () => prefService);
       LogUtil.info(TAG, 'PreferencesService initialized');
     }).catch((err: Error) => {
       LogUtil.error(TAG, `PreferencesService init failed: ${err.message}`);
@@ -29,7 +29,7 @@ export default class EntryAbility extends UIAbility {
     // Initialize Book Database
     const bookDb = BookDatabase.getInstance();
     bookDb.init(this.context).then(() => {
-      AppStorage.setOrCreate('bookDb', bookDb);
+      AppStorageV2.connect(BookDatabase, 'bookDb', () => bookDb);
       LogUtil.info(TAG, 'BookDatabase initialized');
     }).catch((err: Error) => {
       LogUtil.error(TAG, `BookDatabase init failed: ${err.message}`);
@@ -38,7 +38,7 @@ export default class EntryAbility extends UIAbility {
 
   onDestroy(): void {
     hilog.info(DOMAIN, TAG, '%{public}s', 'Ability onDestroy');
-    BookDatabase.getInstance(this.context).destroy();
+    BookDatabase.getInstance().destroy();
   }
 
   onWindowStageCreate(windowStage: window.WindowStage): void {
