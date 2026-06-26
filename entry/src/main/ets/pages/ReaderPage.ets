@@ -131,6 +131,8 @@ struct ReaderPage {
         themeBgImg: '',
         flipMode: this.readerSettings.flipMode === 'slide' ? '1' : '0',
         scaledDensity: display.getDefaultDisplaySync().scaledDensity > 0 ? display.getDefaultDisplaySync().scaledDensity : 1,
+        viewPortWidth: display.getDefaultDisplaySync().width,
+        viewPortHeight: display.getDefaultDisplaySync().height,
       };
       this.readerController.setPageConfig(pageConfig);
     } catch (err) {
