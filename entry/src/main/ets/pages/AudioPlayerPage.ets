@@ -36,14 +36,24 @@ struct AudioPlayerPage {
   private bookHandler: IBookParserHandler | null = null;
   private speedLabels: string[] = ['1.0x', '1.25x', '1.5x', '2.0x'];
   private speeds: number[] = [1.0, 1.25, 1.5, 2.0];
+  private spineIndexFromParams: boolean = false;
 
   aboutToAppear(): void {
     const params = router.getParams() as Record<string, Object>;
     if (params) {
-      this.bookId = params.bookId as number;
-      this.filePath = params.filePath as string;
-      this.bookTitle = params.bookTitle as string;
-      this.currentSpineIndex = params.currentSpineIndex as number;
+      this.bookId = Number(params.bookId) || 0;
+      this.filePath = params.filePath ? String(params.filePath) : '';
+      this.bookTitle = params.bookTitle ? String(params.bookTitle) : '';
+
+      // 兼容路由参数可能是字符串/数字的情况，避免 as number 失效导致默认 0
+      if (typeof params.currentSpineIndex !== 'undefined') {
+        const parsed = Number(params.currentSpineIndex);
+        if (!Number.isNaN(parsed)) {
+          this.currentSpineIndex = parsed;
+          this.spineIndexFromParams = true;
+          LogUtil.info(`AudioPlayer spineIndex from params: ${this.currentSpineIndex}`);
+        }
+      }
     }
     if (!this.filePath) {
       router.back();
@@ -74,6 +84,21 @@ struct AudioPlayerPage {
       const bookInfo = this.bookHandler.getBookInfo();
       const spineList = this.bookHandler.getSpineList();
       this.totalChapters = spineList.length;
+
+      // 若路由未带章节索引，则尝试用阅读进度兜底
+      if (!this.spineIndexFromParams && this.bookId) {
+        try {
+          const bookDb = AppStorageV2.connect(BookDatabase, 'bookDb') as BookDatabase;
+          const progress = await bookDb.getProgressByBookId(this.bookId);
+          if (progress && progress.spineIndex >= 0 && progress.spineIndex < spineList.length) {
+            this.currentSpineIndex = progress.spineIndex;
+            LogUtil.info(`AudioPlayer spineIndex from DB progress: ${this.currentSpineIndex}`);
+          }
+        } catch (e) {
+          LogUtil.warn(`Failed to load progress for AudioPlayer: ${JSON.stringify(e)}`);
+        }
+      }
+
       this.currentChapter = this.getChapterTitle(spineList, this.currentSpineIndex);
 
       // 注册 TTS 事件回调，让服务驱动播放状态与高亮进度
