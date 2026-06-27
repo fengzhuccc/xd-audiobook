@@ -200,6 +200,48 @@ struct ReaderPage {
 
   build() {
     Stack() {
+      // 纸纹背景纹理（仅暖纸主题，模拟设计稿的多层 radial-gradient 纸纹效果）
+      if (this.readerSettings.theme === 'warm') {
+        Column()
+          .width('100%')
+          .height('100%')
+          .radialGradient({
+            center: ['0%', '0%'],
+            radius: 450,
+            colors: [
+              ['rgba(218,195,150,0.08)', 0],
+              ['rgba(218,195,150,0)', 0.5]
+            ]
+          })
+          .hitTestBehavior(HitTestMode.None)
+
+        Column()
+          .width('100%')
+          .height('100%')
+          .radialGradient({
+            center: ['100%', '100%'],
+            radius: 450,
+            colors: [
+              ['rgba(218,195,150,0.07)', 0],
+              ['rgba(218,195,150,0)', 0.5]
+            ]
+          })
+          .hitTestBehavior(HitTestMode.None)
+
+        Column()
+          .width('100%')
+          .height('100%')
+          .radialGradient({
+            center: ['50%', '50%'],
+            radius: 550,
+            colors: [
+              ['rgba(218,195,150,0)', 0.4],
+              ['rgba(218,195,150,0.04)', 1]
+            ]
+          })
+          .hitTestBehavior(HitTestMode.None)
+      }
+
       // 阅读内容
       Scroll(this.scroller) {
         Column() {
@@ -222,13 +264,11 @@ struct ReaderPage {
               .color(AppTheme.borderDefault)
               .layoutWeight(1)
 
-            Text('◆')
-              .fontSize(12)
-              .fontColor(AppTheme.primary)
-              .opacity(0.4)
+            Image($r('app.media.ic_sparkle'))
               .width(16)
               .height(16)
-              .textAlign(TextAlign.Center)
+              .fillColor(AppTheme.primary)
+              .opacity(0.4)
 
             Divider()
               .vertical(false)

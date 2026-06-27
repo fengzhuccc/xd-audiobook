@@ -11,6 +11,7 @@ export class AppTheme {
   static readonly surfaceCard = '#FFFFFF';
   static readonly surfaceElevated = '#FFFFFF';
   static readonly surfaceInset = '#F7F3EB';
+  static readonly surfaceReader = '#FAF6EE';
 
   // 文字
   static readonly textPrimary = '#3D352A';

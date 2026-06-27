@@ -295,7 +295,7 @@ struct AudioPlayerPage {
       Column() {
         // 头部
         Row() {
-          Image($r('app.media.ic_voice'))
+          Image($r('app.media.ic_edit'))
             .width(14).height(14).fillColor(AppTheme.primary)
           Text('正在朗读')
             .fontSize(12)
