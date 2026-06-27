@@ -277,12 +277,13 @@ struct AudioPlayerPage {
           .height('100%')
           .linearGradient({
             angle: 135,
-            colors: [[AppTheme.primaryLight, 0], [AppTheme.primary, 1]]
+            colors: [[AppTheme.primary, 0], [AppTheme.primaryLight, 0.5], [AppTheme.primaryLighter, 1]]
           })
         Text(this.bookTitle.charAt(0))
           .fontSize(72)
           .fontColor(Color.White)
           .fontWeight(FontWeight.Bold)
+          .fontFamily('serif')
       }
       .width(220)
       .height(220)
@@ -326,6 +327,7 @@ struct AudioPlayerPage {
               .backgroundColor(AppTheme.primaryLighter)
               .borderRadius(4)
               .padding({ left: 4, right: 4, top: 2, bottom: 2 })
+              .shadow({ radius: 12, color: 'rgba(139,105,20,0.15)', offsetY: 0 })
           }
           if (this.currentSentenceIndex + 1 < this.sentences.length) {
             Text(this.sentences.slice(this.currentSentenceIndex + 1, this.currentSentenceIndex + 3).join('。') + '。')
@@ -368,7 +370,7 @@ struct AudioPlayerPage {
             .width('100%')
             .height(4)
             .borderRadius(2)
-            .backgroundColor(AppTheme.primaryLight)
+            .backgroundColor(AppTheme.borderDefault)
           Stack({ alignContent: Alignment.End }) {
             Row()
               .width('100%')

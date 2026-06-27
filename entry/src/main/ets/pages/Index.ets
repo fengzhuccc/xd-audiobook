@@ -17,7 +17,8 @@ struct Index {
         .height(24)
         .objectFit(ImageFit.Contain)
       Text(title)
-        .fontSize(10)
+        .fontSize(12)
+        .fontWeight(FontWeight.Medium)
         .fontColor(this.currentTab === index ? AppTheme.primary : AppTheme.textTertiary)
         .margin({ top: 2 })
     }
