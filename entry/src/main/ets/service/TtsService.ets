@@ -121,7 +121,11 @@ export class TtsService {
         if (requestId !== this.currentRequestId) {
           return;
         }
-        LogUtil.info(`TTS onComplete: ${requestId}`);
+        // type: 0 合成结束；1 播报结束。只在真正播完后再切到下一句
+        LogUtil.info(`TTS onComplete: ${requestId}, type=${response.type}`);
+        if (response.type !== 1) {
+          return;
+        }
         this.handleSpeakComplete();
       },
       onStop: (requestId: string, response: textToSpeech.StopResponse) => {
