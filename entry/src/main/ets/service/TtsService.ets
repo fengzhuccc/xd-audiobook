@@ -1,69 +1,288 @@
 import { common } from '@kit.AbilityKit';
+import { textToSpeech } from '@kit.CoreSpeechKit';
+import { BusinessError } from '@kit.BasicServicesKit';
 import { LogUtil } from '../common/utils/LogUtil';
-import { IBookParserHandler } from './BookParser';
+import { IBookParserHandler, htmlToPlainText } from './BookParser';
 
-export type TtsState = 'idle' | 'playing' | 'paused' | 'stopped';
+export type TtsState = 'idle' | 'playing' | 'paused' | 'stopped' | 'error';
+
+export interface TtsEventCallback {
+  onStateChange?: (state: TtsState) => void;
+  onChapterLoaded?: (spineIndex: number, sentences: string[]) => void;
+  onSentenceChange?: (spineIndex: number, sentenceIndex: number) => void;
+  onChapterChange?: (spineIndex: number) => void;
+  onError?: (message: string) => void;
+}
 
 /**
- * 朗读服务（当前为占位实现，用于通过编译）。
- * 如需接入系统 TextReader，请根据本地 SpeechKit 版本替换为真实实现。
+ * 朗读服务（基于 HarmonyOS Core Speech Kit 的 textToSpeech 实现）。
+ * 将章节文本按句拆分后逐句合成播报，并通过回调把状态/进度同步给 UI。
  */
 export class TtsService {
   private isInited: boolean = false;
   private state: TtsState = 'idle';
+  private ttsEngine: textToSpeech.TextToSpeechEngine | null = null;
   private bookParserHandler: IBookParserHandler | null = null;
   private currentSpineIndex: number = 0;
   private bookTitle: string = '';
   private bookAuthor: string = '';
 
-  async init(context: common.UIAbilityContext, bookTitle: string, bookAuthor: string): Promise<void> {
-    this.isInited = true;
-    this.bookTitle = bookTitle;
-    this.bookAuthor = bookAuthor;
-    LogUtil.info('TtsService initialized (stub)');
+  private sentences: string[] = [];
+  private currentSentenceIndex: number = 0;
+  private speed: number = 1.0;
+  private currentRequestId: string = '';
+  private pendingAction: 'none' | 'pause' | 'stop' | 'speed' = 'none';
+  private eventCallback: TtsEventCallback | null = null;
+
+  setEventCallback(callback: TtsEventCallback | null): void {
+    this.eventCallback = callback;
   }
 
-  async startReading(
-    handler: IBookParserHandler,
-    spineIndex: number
-  ): Promise<void> {
-    if (!this.isInited || !handler) return;
+  private emitState(): void {
+    this.eventCallback?.onStateChange?.(this.state);
+  }
 
+  private emitChapterLoaded(): void {
+    this.eventCallback?.onChapterLoaded?.(this.currentSpineIndex, this.sentences);
+  }
+
+  private emitSentenceChange(): void {
+    this.eventCallback?.onSentenceChange?.(this.currentSpineIndex, this.currentSentenceIndex);
+  }
+
+  private emitChapterChange(): void {
+    this.eventCallback?.onChapterChange?.(this.currentSpineIndex);
+  }
+
+  private emitError(message: string): void {
+    this.eventCallback?.onError?.(message);
+  }
+
+  async init(context: common.UIAbilityContext, bookTitle: string, bookAuthor: string): Promise<void> {
+    if (this.isInited) {
+      return;
+    }
+    this.bookTitle = bookTitle;
+    this.bookAuthor = bookAuthor;
+    try {
+      this.ttsEngine = await this.createEngine();
+      this.setupListener();
+      this.isInited = true;
+      this.state = 'idle';
+      LogUtil.info('TtsService initialized with SpeechKit');
+    } catch (err) {
+      const e = err as BusinessError;
+      this.state = 'error';
+      this.emitState();
+      this.emitError(`TTS 初始化失败: ${e.message}`);
+      throw err;
+    }
+  }
+
+  private createEngine(): Promise<textToSpeech.TextToSpeechEngine> {
+    return new Promise((resolve, reject) => {
+      const extraParam: Record<string, Object> = {
+        style: 'interaction-broadcast',
+        locate: 'CN',
+        name: 'AudioBookTTS'
+      };
+      const initParams: textToSpeech.CreateEngineParams = {
+        language: 'zh-CN',
+        person: 0,
+        online: 1,
+        extraParams: extraParam
+      };
+      textToSpeech.createEngine(initParams, (err: BusinessError, engine: textToSpeech.TextToSpeechEngine) => {
+        if (err) {
+          LogUtil.error(`Failed to create TTS engine: ${err.code} ${err.message}`);
+          reject(err);
+        } else {
+          resolve(engine);
+        }
+      });
+    });
+  }
+
+  private setupListener(): void {
+    if (!this.ttsEngine) {
+      return;
+    }
+    const listener: textToSpeech.SpeakListener = {
+      onStart: (requestId: string, response: textToSpeech.StartResponse) => {
+        if (requestId !== this.currentRequestId) {
+          return;
+        }
+        LogUtil.info(`TTS onStart: ${requestId}`);
+        if (this.pendingAction === 'none') {
+          this.state = 'playing';
+          this.emitState();
+        }
+      },
+      onComplete: (requestId: string, response: textToSpeech.CompleteResponse) => {
+        if (requestId !== this.currentRequestId) {
+          return;
+        }
+        LogUtil.info(`TTS onComplete: ${requestId}`);
+        this.handleSpeakComplete();
+      },
+      onStop: (requestId: string, response: textToSpeech.StopResponse) => {
+        if (requestId !== this.currentRequestId) {
+          return;
+        }
+        LogUtil.info(`TTS onStop: ${requestId}, pending=${this.pendingAction}`);
+        this.pendingAction = 'none';
+      },
+      onData: (requestId: string, audio: ArrayBuffer, response: textToSpeech.SynthesisResponse) => {
+        // 不自行处理音频流，由引擎直接播报
+      },
+      onError: (requestId: string, errorCode: number, errorMessage: string) => {
+        if (requestId !== this.currentRequestId) {
+          return;
+        }
+        LogUtil.error(`TTS onError: ${requestId}, ${errorCode}, ${errorMessage}`);
+        this.pendingAction = 'none';
+        if (this.state === 'playing') {
+          this.state = 'error';
+          this.emitState();
+          this.emitError(`朗读出错: ${errorMessage}`);
+        }
+      }
+    };
+    this.ttsEngine.setListener(listener);
+  }
+
+  private handleSpeakComplete(): void {
+    if (this.pendingAction !== 'none') {
+      this.pendingAction = 'none';
+      return;
+    }
+    if (this.state !== 'playing') {
+      return;
+    }
+    this.currentSentenceIndex++;
+    if (this.currentSentenceIndex >= this.sentences.length) {
+      this.playNextChapter();
+      return;
+    }
+    this.emitSentenceChange();
+    this.speakCurrentSentence();
+  }
+
+  async startReading(handler: IBookParserHandler, spineIndex: number): Promise<void> {
+    if (!this.isInited || !handler) {
+      return;
+    }
+    this.stopInternal('none');
     this.bookParserHandler = handler;
     this.currentSpineIndex = spineIndex;
+    this.currentSentenceIndex = 0;
     this.state = 'playing';
+    this.pendingAction = 'none';
+    try {
+      await this.loadChapterSentences();
+      this.emitChapterLoaded();
+      this.emitChapterChange();
+      this.emitState();
+      this.emitSentenceChange();
+      if (this.sentences.length > 0) {
+        this.speakCurrentSentence();
+      } else {
+        this.playNextChapter();
+      }
+    } catch (err) {
+      LogUtil.error(`startReading failed: ${JSON.stringify(err)}`);
+      this.state = 'error';
+      this.emitState();
+    }
+  }
 
-    const spineList = handler.getSpineList();
-    const chapterTitle = spineList[spineIndex]?.href?.split('/').pop()?.replace(/\.\w+$/, '') || `第${spineIndex + 1}章`;
-    LogUtil.info(`TTS started (stub): ${chapterTitle}`);
+  private async loadChapterSentences(): Promise<void> {
+    if (!this.bookParserHandler) {
+      this.sentences = [];
+      return;
+    }
+    const rawContent = await this.bookParserHandler.getSpineItemContent(this.currentSpineIndex);
+    const plainText = rawContent.includes('<') ? htmlToPlainText(rawContent) : rawContent;
+    // 将换行统一为句末标点，便于按句拆分
+    const normalized = plainText.replace(/\n+/g, '。').replace(/\s+/g, '');
+    const matches = normalized.match(/[^。！？.?!]+[。！？.?!]?/g);
+    this.sentences = matches ? matches.filter((s) => s.trim().length > 0) : [];
+  }
+
+  private speakCurrentSentence(): void {
+    if (!this.ttsEngine || this.currentSentenceIndex >= this.sentences.length) {
+      return;
+    }
+    const text = this.sentences[this.currentSentenceIndex];
+    this.currentRequestId = `${this.currentSpineIndex}-${this.currentSentenceIndex}-${Date.now()}`;
+    const speakParams: textToSpeech.SpeakParams = {
+      requestId: this.currentRequestId,
+      extraParams: { speed: this.speed }
+    };
+    LogUtil.info(`TTS speak: ${text.substring(0, 40)}...`);
+    this.pendingAction = 'none';
+    this.ttsEngine.speak(text, speakParams);
   }
 
   pause(): void {
-    if (this.state !== 'playing') return;
+    if (this.state !== 'playing') {
+      return;
+    }
     this.state = 'paused';
-    LogUtil.info('TTS paused (stub)');
+    this.pendingAction = 'pause';
+    this.stopEngine();
+    this.emitState();
   }
 
   resume(): void {
-    if (this.state !== 'paused') return;
+    if (this.state !== 'paused') {
+      return;
+    }
     this.state = 'playing';
-    LogUtil.info('TTS resumed (stub)');
+    this.pendingAction = 'none';
+    this.emitState();
+    this.speakCurrentSentence();
   }
 
   stop(): void {
-    this.state = 'stopped';
-    LogUtil.info('TTS stopped (stub)');
+    this.stopInternal('stop');
+  }
+
+  private stopInternal(action: 'none' | 'pause' | 'stop' | 'speed'): void {
+    this.pendingAction = action;
+    this.stopEngine();
+    if (action === 'stop') {
+      this.state = 'stopped';
+      this.currentSentenceIndex = 0;
+    } else if (action === 'pause') {
+      this.state = 'paused';
+    }
+    this.emitState();
+  }
+
+  private stopEngine(): void {
+    try {
+      this.ttsEngine?.stop();
+    } catch (e) {
+      LogUtil.warn(`TTS stop failed: ${JSON.stringify(e)}`);
+    }
   }
 
   playPrevChapter(): void {
-    if (!this.bookParserHandler || this.currentSpineIndex <= 0) return;
+    if (!this.bookParserHandler || this.currentSpineIndex <= 0) {
+      return;
+    }
     this.startReading(this.bookParserHandler, this.currentSpineIndex - 1);
   }
 
   playNextChapter(): void {
-    if (!this.bookParserHandler) return;
+    if (!this.bookParserHandler) {
+      return;
+    }
     const spineList = this.bookParserHandler.getSpineList();
     if (this.currentSpineIndex >= spineList.length - 1) {
+      this.state = 'stopped';
+      this.emitState();
       LogUtil.info('Already at last chapter');
       return;
     }
@@ -79,16 +298,30 @@ export class TtsService {
   }
 
   setSpeed(speed: number): void {
-    LogUtil.info(`TTS setSpeed (stub): ${speed}`);
-  }
-
-  showVoicePanel(): void {
-    LogUtil.info('TTS showVoicePanel (stub)');
+    this.speed = speed;
+    LogUtil.info(`TTS setSpeed: ${speed}`);
+    if (this.state === 'playing') {
+      this.stopInternal('speed');
+      this.state = 'playing';
+      this.pendingAction = 'none';
+      this.speakCurrentSentence();
+      this.emitState();
+    }
   }
 
   release(): void {
-    this.stop();
+    try {
+      this.ttsEngine?.stop();
+      this.ttsEngine?.shutdown();
+    } catch (e) {
+      LogUtil.warn(`TTS release failed: ${JSON.stringify(e)}`);
+    }
+    this.ttsEngine = null;
     this.isInited = false;
-    LogUtil.info('TTS resources released (stub)');
+    this.state = 'idle';
+    this.bookParserHandler = null;
+    this.eventCallback = null;
+    this.currentRequestId = '';
+    LogUtil.info('TTS resources released');
   }
 }

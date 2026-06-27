@@ -15,6 +15,10 @@
     {
       "name": "bg_runner_reason",
       "value": "朗读功能需要后台持续运行以提供听书服务"
+    },
+    {
+      "name": "internet_permission_reason",
+      "value": "在线语音合成需要访问网络"
     }
   ]
 }

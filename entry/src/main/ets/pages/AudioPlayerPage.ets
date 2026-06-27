@@ -6,7 +6,7 @@ import { BookDatabase } from '../service/BookDatabase';
 import { BookProgress } from '../common/model/BookProgress';
 import { LogUtil } from '../common/utils/LogUtil';
 import { BusinessError } from '@kit.BasicServicesKit';
-import { BookParserFactory, IBookParserHandler, ParsedSpineItem, htmlToPlainText } from '../service/BookParser';
+import { BookParserFactory, IBookParserHandler, ParsedSpineItem } from '../service/BookParser';
 
 @Entry
 @Component
@@ -21,7 +21,6 @@ struct AudioPlayerPage {
   @State ttsState: TtsState = 'idle';
   @State currentChapter: string = '';
   @State totalChapters: number = 0;
-  @State plainTextContent: string = '';
   @State currentSentenceIndex: number = 0;
   @State sentences: string[] = [];
 
@@ -77,39 +76,40 @@ struct AudioPlayerPage {
       this.totalChapters = spineList.length;
       this.currentChapter = this.getChapterTitle(spineList, this.currentSpineIndex);
 
-      // 获取当前章节纯文本用于高亮展示
-      await this.loadChapterContent();
+      // 注册 TTS 事件回调，让服务驱动播放状态与高亮进度
+      this.ttsService.setEventCallback({
+        onStateChange: (state: TtsState) => {
+          this.ttsState = state;
+        },
+        onChapterLoaded: (spineIndex: number, sentences: string[]) => {
+          this.currentSpineIndex = spineIndex;
+          this.sentences = sentences;
+          this.currentSentenceIndex = 0;
+          if (this.bookHandler) {
+            this.currentChapter = this.getChapterTitle(this.bookHandler.getSpineList(), spineIndex);
+          }
+        },
+        onSentenceChange: (spineIndex: number, sentenceIndex: number) => {
+          if (spineIndex !== this.currentSpineIndex) {
+            // 章节自动切换时由 onChapterLoaded 更新 sentences，这里只同步索引
+            this.currentSpineIndex = spineIndex;
+            if (this.bookHandler) {
+              this.currentChapter = this.getChapterTitle(this.bookHandler.getSpineList(), spineIndex);
+            }
+          }
+          this.currentSentenceIndex = sentenceIndex;
+        },
+        onError: (message: string) => {
+          LogUtil.error(message);
+        }
+      });
 
       // 初始化并开始朗读
       await this.ttsService.init(context, bookInfo.bookTitle, bookInfo.bookCreator || '');
       await this.ttsService.startReading(this.bookHandler, this.currentSpineIndex);
-      this.ttsState = this.ttsService.getState();
     } catch (err) {
       const error = err as BusinessError;
       LogUtil.error(`AudioPlayer init failed: ${JSON.stringify(err)}`);
-    }
-  }
-
-  private async loadChapterContent(): Promise<void> {
-    if (!this.bookHandler) return;
-    try {
-      const rawContent = await this.bookHandler.getSpineItemContent(this.currentSpineIndex);
-      if (!rawContent) {
-        this.plainTextContent = '';
-        this.sentences = [];
-        return;
-      }
-      // 如果是 HTML，转为纯文本
-      if (rawContent.includes('<')) {
-        this.plainTextContent = htmlToPlainText(rawContent);
-      } else {
-        this.plainTextContent = rawContent;
-      }
-
-      this.sentences = this.plainTextContent.split(/[。！？\n]/g).filter((s: string) => s.trim().length > 0);
-      this.currentSentenceIndex = 0;
-    } catch (err) {
-      LogUtil.error(`Failed to load chapter content: ${JSON.stringify(err)}`);
     }
   }
 
@@ -141,11 +141,7 @@ struct AudioPlayerPage {
     this.currentSpineIndex--;
     if (this.bookHandler) {
       this.currentChapter = this.getChapterTitle(this.bookHandler.getSpineList(), this.currentSpineIndex);
-    }
-    this.loadChapterContent();
-    if (this.bookHandler) {
       this.ttsService.startReading(this.bookHandler, this.currentSpineIndex);
-      this.ttsState = this.ttsService.getState();
     }
   }
 
@@ -154,11 +150,7 @@ struct AudioPlayerPage {
     this.currentSpineIndex++;
     if (this.bookHandler) {
       this.currentChapter = this.getChapterTitle(this.bookHandler.getSpineList(), this.currentSpineIndex);
-    }
-    this.loadChapterContent();
-    if (this.bookHandler) {
       this.ttsService.startReading(this.bookHandler, this.currentSpineIndex);
-      this.ttsState = this.ttsService.getState();
     }
   }
 
@@ -293,6 +285,11 @@ struct AudioPlayerPage {
       .margin({ top: 8, bottom: 16 })
 
       // 4. 文本高亮区
+      let prevStart = Math.max(0, this.currentSentenceIndex - 2);
+      let prevText = this.currentSentenceIndex > 0 ? this.sentences.slice(prevStart, this.currentSentenceIndex).join('') : '';
+      let currentText = this.currentSentenceIndex < this.sentences.length ? this.sentences[this.currentSentenceIndex] : '';
+      let nextEnd = Math.min(this.sentences.length, this.currentSentenceIndex + 3);
+      let nextText = this.currentSentenceIndex + 1 < this.sentences.length ? this.sentences.slice(this.currentSentenceIndex + 1, nextEnd).join('') : '';
       Column() {
         // 头部
         Row() {
@@ -309,16 +306,16 @@ struct AudioPlayerPage {
 
         // 正文
         Column() {
-          if (this.currentSentenceIndex > 0) {
-            Text(this.sentences.slice(0, this.currentSentenceIndex).join('。') + '。')
+          if (prevText.length > 0) {
+            Text(prevText)
               .fontSize(13)
               .fontFamily('serif')
               .lineHeight(28)
               .letterSpacing(0.5)
               .fontColor(AppTheme.textTertiary)
           }
-          if (this.currentSentenceIndex < this.sentences.length) {
-            Text(this.sentences[this.currentSentenceIndex] + '。')
+          if (currentText.length > 0) {
+            Text(currentText)
               .fontSize(13)
               .fontFamily('serif')
               .lineHeight(28)
@@ -329,8 +326,8 @@ struct AudioPlayerPage {
               .padding({ left: 4, right: 4, top: 2, bottom: 2 })
               .shadow({ radius: 12, color: 'rgba(139,105,20,0.15)', offsetY: 0 })
           }
-          if (this.currentSentenceIndex + 1 < this.sentences.length) {
-            Text(this.sentences.slice(this.currentSentenceIndex + 1, this.currentSentenceIndex + 3).join('。') + '。')
+          if (nextText.length > 0) {
+            Text(nextText)
               .fontSize(13)
               .fontFamily('serif')
               .lineHeight(28)
