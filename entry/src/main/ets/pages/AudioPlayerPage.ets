@@ -121,6 +121,29 @@ struct AudioPlayerPage {
     return `第${index + 1}章`;
   }
 
+  private getPrevText(): string {
+    if (this.currentSentenceIndex <= 0) {
+      return '';
+    }
+    const start = Math.max(0, this.currentSentenceIndex - 2);
+    return this.sentences.slice(start, this.currentSentenceIndex).join('');
+  }
+
+  private getCurrentText(): string {
+    if (this.currentSentenceIndex < this.sentences.length) {
+      return this.sentences[this.currentSentenceIndex];
+    }
+    return '';
+  }
+
+  private getNextText(): string {
+    if (this.currentSentenceIndex + 1 >= this.sentences.length) {
+      return '';
+    }
+    const end = Math.min(this.sentences.length, this.currentSentenceIndex + 3);
+    return this.sentences.slice(this.currentSentenceIndex + 1, end).join('');
+  }
+
   private togglePlayPause(): void {
     if (this.ttsState === 'playing') {
       this.ttsService.pause();
@@ -285,11 +308,6 @@ struct AudioPlayerPage {
       .margin({ top: 8, bottom: 16 })
 
       // 4. 文本高亮区
-      let prevStart = Math.max(0, this.currentSentenceIndex - 2);
-      let prevText = this.currentSentenceIndex > 0 ? this.sentences.slice(prevStart, this.currentSentenceIndex).join('') : '';
-      let currentText = this.currentSentenceIndex < this.sentences.length ? this.sentences[this.currentSentenceIndex] : '';
-      let nextEnd = Math.min(this.sentences.length, this.currentSentenceIndex + 3);
-      let nextText = this.currentSentenceIndex + 1 < this.sentences.length ? this.sentences.slice(this.currentSentenceIndex + 1, nextEnd).join('') : '';
       Column() {
         // 头部
         Row() {
@@ -306,16 +324,16 @@ struct AudioPlayerPage {
 
         // 正文
         Column() {
-          if (prevText.length > 0) {
-            Text(prevText)
+          if (this.getPrevText().length > 0) {
+            Text(this.getPrevText())
               .fontSize(13)
               .fontFamily('serif')
               .lineHeight(28)
               .letterSpacing(0.5)
               .fontColor(AppTheme.textTertiary)
           }
-          if (currentText.length > 0) {
-            Text(currentText)
+          if (this.getCurrentText().length > 0) {
+            Text(this.getCurrentText())
               .fontSize(13)
               .fontFamily('serif')
               .lineHeight(28)
@@ -326,8 +344,8 @@ struct AudioPlayerPage {
               .padding({ left: 4, right: 4, top: 2, bottom: 2 })
               .shadow({ radius: 12, color: 'rgba(139,105,20,0.15)', offsetY: 0 })
           }
-          if (nextText.length > 0) {
-            Text(nextText)
+          if (this.getNextText().length > 0) {
+            Text(this.getNextText())
               .fontSize(13)
               .fontFamily('serif')
               .lineHeight(28)

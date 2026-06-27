@@ -75,22 +75,21 @@ export class TtsService {
       this.state = 'error';
       this.emitState();
       this.emitError(`TTS 初始化失败: ${e.message}`);
-      throw err;
+      throw new Error(String(e.message));
     }
   }
 
   private createEngine(): Promise<textToSpeech.TextToSpeechEngine> {
     return new Promise((resolve, reject) => {
-      const extraParam: Record<string, Object> = {
-        style: 'interaction-broadcast',
-        locate: 'CN',
-        name: 'AudioBookTTS'
-      };
       const initParams: textToSpeech.CreateEngineParams = {
         language: 'zh-CN',
         person: 0,
         online: 1,
-        extraParams: extraParam
+        extraParams: {
+          style: 'interaction-broadcast',
+          locate: 'CN',
+          name: 'AudioBookTTS'
+        }
       };
       textToSpeech.createEngine(initParams, (err: BusinessError, engine: textToSpeech.TextToSpeechEngine) => {
         if (err) {
@@ -215,13 +214,12 @@ export class TtsService {
     }
     const text = this.sentences[this.currentSentenceIndex];
     this.currentRequestId = `${this.currentSpineIndex}-${this.currentSentenceIndex}-${Date.now()}`;
-    const speakParams: textToSpeech.SpeakParams = {
-      requestId: this.currentRequestId,
-      extraParams: { speed: this.speed }
-    };
     LogUtil.info(`TTS speak: ${text.substring(0, 40)}...`);
     this.pendingAction = 'none';
-    this.ttsEngine.speak(text, speakParams);
+    this.ttsEngine.speak(text, {
+      requestId: this.currentRequestId,
+      extraParams: { speed: this.speed }
+    });
   }
 
   pause(): void {
