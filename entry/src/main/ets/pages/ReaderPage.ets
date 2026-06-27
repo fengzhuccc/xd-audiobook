@@ -253,55 +253,66 @@ struct ReaderPage {
 
       // 阅读内容
       Scroll(this.scroller) {
-        Column() {
-          // 章节标题
-          Text(this.getCurrentChapterTitle())
-            .fontSize(20)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(AppTheme.textPrimary)
-            .letterSpacing(2)
-            .fontFamily('serif')
-            .textAlign(TextAlign.Center)
+        Row() {
+          Column() {
+            // 章节标题
+            Text(this.getCurrentChapterTitle())
+              .fontSize(20)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(AppTheme.textPrimary)
+              .letterSpacing(2)
+              .fontFamily('serif')
+              .textAlign(TextAlign.Center)
+              .width('100%')
+              .margin({ top: 16, bottom: 24 })
+
+            // 装饰性分隔线
+            Row() {
+              Divider()
+                .vertical(false)
+                .strokeWidth(1)
+                .color(AppTheme.borderDefault)
+                .layoutWeight(1)
+
+              Image($r('app.media.ic_sparkle'))
+                .width(16)
+                .height(16)
+                .fillColor(AppTheme.primary)
+                .opacity(0.4)
+
+              Divider()
+                .vertical(false)
+                .strokeWidth(1)
+                .color(AppTheme.borderDefault)
+                .layoutWeight(1)
+            }
             .width('100%')
-            .margin({ top: 16, bottom: 24 })
+            .height(16)
+            .justifyContent(FlexAlign.Center)
+            .padding({ left: 24, right: 24 })
+            .margin({ bottom: 24 })
 
-          // 装饰性分隔线
-          Row() {
-            Divider()
-              .vertical(false)
-              .strokeWidth(1)
-              .color(AppTheme.borderDefault)
-              .layoutWeight(1)
-
-            Image($r('app.media.ic_sparkle'))
-              .width(16)
-              .height(16)
-              .fillColor(AppTheme.primary)
-              .opacity(0.4)
-
-            Divider()
-              .vertical(false)
-              .strokeWidth(1)
-              .color(AppTheme.borderDefault)
-              .layoutWeight(1)
+            // 正文：按段落渲染，模拟 design 中的 <p> 间距
+            ForEach(this.chapterContent.split('\n\n').filter((p: string) => p.trim().length > 0),
+              (paragraph: string, index: number) => {
+                Text(paragraph)
+                  .fontSize(this.readerSettings.fontSize)
+                  .fontColor(this.getThemeByKey(this.readerSettings.theme)?.fontColor || AppTheme.textPrimary)
+                  .lineHeight(this.readerSettings.fontSize * this.readerSettings.lineHeight)
+                  .letterSpacing(this.readerSettings.letterSpacing * this.readerSettings.fontSize)
+                  .textAlign(TextAlign.JUSTIFY)
+                  .fontFamily('serif')
+                  .width('100%')
+                  .padding({ left: 24, right: 24 })
+                  .margin({ bottom: this.readerSettings.fontSize * 1.2 })
+              }, (paragraph: string, index: number) => `${index}_${paragraph.length}`)
           }
           .width('100%')
-          .height(16)
-          .justifyContent(FlexAlign.Center)
-          .padding({ left: 24, right: 24 })
-          .margin({ bottom: 24 })
-
-          // 正文
-          Text(this.chapterContent)
-            .fontSize(this.readerSettings.fontSize)
-            .fontColor(this.getThemeByKey(this.readerSettings.theme)?.fontColor || AppTheme.textPrimary)
-            .lineHeight(this.readerSettings.fontSize * this.readerSettings.lineHeight)
-            .letterSpacing(this.readerSettings.letterSpacing * this.readerSettings.fontSize)
-            .textAlign(TextAlign.JUSTIFY)
-            .width('100%')
-            .padding({ left: 24, right: 24, top: 0, bottom: 120 })
+          .constraintSize({ maxWidth: 672 })
+          .padding({ top: 92, bottom: 120 })
         }
         .width('100%')
+        .justifyContent(FlexAlign.Center)
       }
       .width('100%')
       .height('100%')
@@ -383,49 +394,61 @@ struct ReaderPage {
         .backdropBlur(16)
         .padding({ top: 44 })
         .align(Alignment.Top)
+        .zIndex(2)
+        .onClick(() => {
+          // 拦截背景点击，避免触发内容层的工具栏切换
+        })
       }
 
-      // 底部翻页控制
-      if (this.showToolbar) {
-        Row() {
-          // 上一章
+      // 左侧翻页区
+      Column() {
+        if (this.showToolbar) {
           Row() {
-            Image($r('app.media.ic_skip_prev'))
-              .width(20)
-              .height(20)
-              .fillColor(this.currentSpineIndex > 0 ? AppTheme.textPrimary : AppTheme.textTertiary)
+            Image($r('app.media.ic_arrow_left'))
+              .width(16)
+              .height(16)
+              .fillColor(AppTheme.textTertiary)
           }
-          .width(40)
-          .height(40)
+          .width(32)
+          .height(32)
+          .borderRadius(16)
+          .backgroundColor('rgba(253,251,247,0.7)')
           .justifyContent(FlexAlign.Center)
-          .onClick(() => { this.goPrevChapter() })
-
-          Text(`第 ${this.currentSpineIndex + 1} / ${this.totalSpines} 章`)
-            .fontSize(13)
-            .fontColor(AppTheme.textSecondary)
-            .layoutWeight(1)
-            .textAlign(TextAlign.Center)
-
-          // 下一章
-          Row() {
-            Image($r('app.media.ic_skip_next'))
-              .width(20)
-              .height(20)
-              .fillColor(this.currentSpineIndex < this.totalSpines - 1 ? AppTheme.textPrimary : AppTheme.textTertiary)
-          }
-          .width(40)
-          .height(40)
-          .justifyContent(FlexAlign.Center)
-          .onClick(() => { this.goNextChapter() })
+          .shadow({ radius: 4, color: 'rgba(61,53,42,0.04)', offsetY: 1 })
         }
-        .width('100%')
-        .height(56)
-        .padding({ left: 16, right: 16, bottom: 24 })
-        .backgroundColor('rgba(253,251,247,0.9)')
-        .backdropBlur(16)
-        .justifyContent(FlexAlign.SpaceBetween)
-        .align(Alignment.Bottom)
       }
+      .width(64)
+      .height('100%')
+      .justifyContent(FlexAlign.Center)
+      .alignItems(HorizontalAlign.Start)
+      .padding({ left: 8 })
+      .align(Alignment.Start)
+      .onClick(() => { this.goPrevChapter() })
+
+      // 右侧翻页区
+      Column() {
+        if (this.showToolbar) {
+          Row() {
+            Image($r('app.media.ic_arrow_right'))
+              .width(16)
+              .height(16)
+              .fillColor(AppTheme.textTertiary)
+          }
+          .width(32)
+          .height(32)
+          .borderRadius(16)
+          .backgroundColor('rgba(253,251,247,0.7)')
+          .justifyContent(FlexAlign.Center)
+          .shadow({ radius: 4, color: 'rgba(61,53,42,0.04)', offsetY: 1 })
+        }
+      }
+      .width(64)
+      .height('100%')
+      .justifyContent(FlexAlign.Center)
+      .alignItems(HorizontalAlign.End)
+      .padding({ right: 8 })
+      .align(Alignment.End)
+      .onClick(() => { this.goNextChapter() })
 
       // 页面指示器（始终可见，悬浮于底部居中）
       Row() {
@@ -440,7 +463,8 @@ struct ReaderPage {
       .width('100%')
       .justifyContent(FlexAlign.Center)
       .align(Alignment.Bottom)
-      .margin({ bottom: this.showToolbar ? 100 : 72 })
+      .margin({ bottom: 24 })
+      .zIndex(2)
 
       // 目录侧边栏
       if (this.catalogVisible) {
