@@ -16,7 +16,18 @@ export struct BookshelfPage {
   @StorageLink('bookshelfRefreshFlag') @Watch('onShelfChanged') refreshFlag: number = 0;
 
   aboutToAppear(): void {
-    this.loadBooks();
+    this.waitAndLoadBooks();
+  }
+
+  onPageShow(): void {
+    this.waitAndLoadBooks();
+  }
+
+  /** 等待数据库初始化完成后再加载书籍，避免启动时空数据 */
+  private waitAndLoadBooks(): void {
+    BookDatabase.getInstance().waitForInit().then(() => {
+      this.loadBooks();
+    });
   }
 
   /**

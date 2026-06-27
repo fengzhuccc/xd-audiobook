@@ -14,6 +14,7 @@ const STORE_CONFIG: relationalStore.StoreConfig = {
 export class BookDatabase {
   private static instance: BookDatabase | null = null;
   private store: relationalStore.RdbStore | null = null;
+  private initPromise: Promise<void> | null = null;
 
   constructor() {}
 
@@ -24,7 +25,14 @@ export class BookDatabase {
     return BookDatabase.instance;
   }
 
-  async init(context: common.UIAbilityContext): Promise<void> {
+  init(context: common.UIAbilityContext): Promise<void> {
+    if (!this.initPromise) {
+      this.initPromise = this.doInit(context);
+    }
+    return this.initPromise;
+  }
+
+  private async doInit(context: common.UIAbilityContext): Promise<void> {
     try {
       this.store = await relationalStore.getRdbStore(context, STORE_CONFIG);
       await this.createTables();
@@ -32,6 +40,11 @@ export class BookDatabase {
     } catch (err) {
       LogUtil.error(`Failed to init database: ${JSON.stringify(err)}`);
     }
+  }
+
+  /** 等待数据库初始化完成；即使 init 尚未调用也安全返回 */
+  waitForInit(): Promise<void> {
+    return this.initPromise ?? Promise.resolve();
   }
 
   private async createTables(): Promise<void> {

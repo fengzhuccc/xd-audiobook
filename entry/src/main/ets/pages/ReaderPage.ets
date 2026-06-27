@@ -383,8 +383,10 @@ struct ReaderPage {
         .backdropBlur(16)
         .padding({ top: 44 })
         .align(Alignment.Top)
+      }
 
-        // 底部翻页控制
+      // 底部翻页控制
+      if (this.showToolbar) {
         Row() {
           // 上一章
           Row() {
@@ -438,7 +440,7 @@ struct ReaderPage {
       .width('100%')
       .justifyContent(FlexAlign.Center)
       .align(Alignment.Bottom)
-      .margin({ bottom: 72 })
+      .margin({ bottom: this.showToolbar ? 100 : 72 })
 
       // 目录侧边栏
       if (this.catalogVisible) {

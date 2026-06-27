@@ -23,7 +23,18 @@ export struct LibraryPage {
   private filters: string[] = ['全部', 'EPUB', 'TXT', 'PDF', 'MOBI'];
 
   aboutToAppear(): void {
-    this.loadBooks();
+    this.waitAndLoadBooks();
+  }
+
+  onPageShow(): void {
+    this.waitAndLoadBooks();
+  }
+
+  /** 等待数据库初始化完成后再加载书籍，避免启动时空数据 */
+  private waitAndLoadBooks(): void {
+    BookDatabase.getInstance().waitForInit().then(() => {
+      this.loadBooks();
+    });
   }
 
   private loadBooks(): void {
