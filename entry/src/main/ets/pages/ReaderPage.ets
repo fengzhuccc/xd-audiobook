@@ -393,7 +393,7 @@ struct ReaderPage {
         .backgroundColor('rgba(253,251,247,0.85)')
         .backdropBlur(16)
         .padding({ top: 44 })
-        .align(Alignment.Top)
+        .position({ x: 0, y: 0 })
         .zIndex(2)
         .onClick(() => {
           // 拦截背景点击，避免触发内容层的工具栏切换
@@ -462,8 +462,8 @@ struct ReaderPage {
       }
       .width('100%')
       .justifyContent(FlexAlign.Center)
-      .align(Alignment.Bottom)
-      .margin({ bottom: 24 })
+      .position({ x: 0, y: '100%' })
+      .offset({ y: -48 })
       .zIndex(2)
 
       // 目录侧边栏

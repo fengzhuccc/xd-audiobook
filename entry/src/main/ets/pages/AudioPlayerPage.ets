@@ -471,6 +471,9 @@ struct AudioPlayerPage {
         .margin({ bottom: 16 })
         .onClick(() => { this.cycleSpeed() })
 
+      // 用 Blank 把底部控制栏推到底部，避免被刘海/手势条遮挡
+      Blank().layoutWeight(1)
+
       // 8. 附加控制栏
       Row() {
         Column() {
@@ -518,7 +521,7 @@ struct AudioPlayerPage {
       .backgroundColor(AppTheme.surfaceCard)
       .borderRadius(12)
       .shadow({ radius: 4, color: 'rgba(61,53,42,0.04)', offsetY: 1 })
-      .margin({ left: 20, right: 20, bottom: 24 })
+      .margin({ left: 20, right: 20, bottom: 40 })
     }
     .width('100%')
     .height('100%')
