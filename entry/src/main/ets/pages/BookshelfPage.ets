@@ -123,6 +123,7 @@ export struct BookshelfPage {
           .width('100%')
           .backgroundColor(AppTheme.surfaceInset)
           .borderRadius(12)
+          .border({ width: 1, color: AppTheme.borderDefault })
           .margin({ bottom: 20 })
           .clip(true)
 
@@ -153,12 +154,23 @@ export struct BookshelfPage {
                       .fontSize(24)
                       .fontColor(Color.White)
                       .fontWeight(FontWeight.Bold)
+                      .fontFamily('serif')
                   }
                   .width('100%')
                   .height('100%')
                   .justifyContent(FlexAlign.Center)
                   .alignItems(HorizontalAlign.Center)
-                  // 右侧渐变过渡
+
+                  // 琥珀色"金色时光"叠层
+                  Column()
+                    .width('100%')
+                    .height('100%')
+                    .linearGradient({
+                      angle: 90,
+                      colors: [['rgba(196,154,42,0.15)', 0], ['rgba(196,154,42,0.35)', 1]]
+                    })
+
+                  // 右侧渐变过渡，融入卡片
                   Column()
                     .width(16)
                     .height('100%')
@@ -238,7 +250,7 @@ export struct BookshelfPage {
               .padding(12)
               .backgroundColor(AppTheme.surfaceCard)
               .borderRadius(8)
-              .shadow({ radius: 8, color: 'rgba(61,53,42,0.08)', offsetY: 2 })
+              .shadow({ radius: 8, color: 'rgba(61,53,42,0.05)', offsetY: 2 })
               .onClick(() => { this.openBook(this.recentBook as BookInfo) })
             }
             .width('100%')
@@ -316,6 +328,7 @@ export struct BookshelfPage {
                   .width('100%')
                   .aspectRatio(0.715)
                   .borderRadius(8)
+                  .shadow({ radius: 4, color: 'rgba(61,53,42,0.04)', offsetY: 1 })
                   .clip(true)
 
                   Text(book.title)
@@ -325,15 +338,6 @@ export struct BookshelfPage {
                     .maxLines(1)
                     .textOverflow({ overflow: TextOverflow.Ellipsis })
                     .margin({ top: 8 })
-                    .textAlign(TextAlign.Center)
-                    .width('100%')
-
-                  Text(book.author)
-                    .fontSize(11)
-                    .fontColor(AppTheme.textTertiary)
-                    .maxLines(1)
-                    .textOverflow({ overflow: TextOverflow.Ellipsis })
-                    .margin({ top: 2 })
                     .textAlign(TextAlign.Center)
                     .width('100%')
                 }
@@ -361,13 +365,12 @@ export struct BookshelfPage {
    */
   private getGradientForBook(book: BookInfo): [ResourceColor, number][] {
     const hash = book.title.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+    // 仅使用设计稿中的暖色系渐变，保持"温暖书卷风"视觉一致
     const palettes: [ResourceColor, number][][] = [
-      [[AppTheme.primary, 0], [AppTheme.primaryLight, 1]],       // 金棕
-      [['#6E614C', 0], ['#A89678', 1]],                            // 暖灰
-      [['#4A7B9D', 0], ['#7BAFC9', 1]],                            // 青蓝
-      [['#5B8C3E', 0], ['#8DB86B', 1]],                            // 绿色
-      [['#8B6914', 0], ['#C49A2A', 1]],                            // 琥珀
-      [['#6B4F0E', 0], ['#8B6914', 1]],                            // 深棕
+      [[AppTheme.primary, 0], [AppTheme.primaryLight, 1], [AppTheme.primaryLighter, 1]],       // 金棕
+      [['#6E614C', 0], ['#A89678', 0.5], ['#DDD3BF', 1]],                                      // 暖灰
+      [['#554A3A', 0], ['#8A7A60', 0.5], ['#C4B69A', 1]],                                      // 棕褐
+      [['#6B4F0E', 0], [AppTheme.primary, 0.5], [AppTheme.primaryLight, 1]],                   // 深棕
     ];
     return palettes[hash % palettes.length];
   }

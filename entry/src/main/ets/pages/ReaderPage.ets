@@ -114,6 +114,7 @@ struct ReaderPage {
         // 纯文本
         this.chapterContent = rawContent;
       }
+      this.chapterContent = this.addParagraphIndent(this.chapterContent);
       this.scroller.scrollEdge(Edge.Top);
     } catch (err) {
       LogUtil.error(`Failed to load chapter: ${JSON.stringify(err)}`);
@@ -137,6 +138,14 @@ struct ReaderPage {
     if (key === 'white') return READER_THEMES.white;
     if (key === 'night') return READER_THEMES.night;
     return null;
+  }
+
+  /** 为每个非空段落前增加两字符缩进，模拟 text-indent: 2em */
+  private addParagraphIndent(content: string): string {
+    return content
+      .split('\n')
+      .map((line: string) => (line.trim().length > 0 ? '　　' + line : line))
+      .join('\n');
   }
 
   private saveProgress(): void {
