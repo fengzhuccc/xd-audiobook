@@ -16,6 +16,7 @@ interface PrefKeys {
   TTS_SPEED: string;
   TTS_AUTO_NEXT: string;
   TTS_HIGHLIGHT: string;
+  TTS_VOICE_PERSON: string;
   LAST_BOOK_ID: string;
 }
 
@@ -29,6 +30,7 @@ const PREF_KEYS: PrefKeys = {
   TTS_SPEED: 'tts_speed',
   TTS_AUTO_NEXT: 'tts_autoNextChapter',
   TTS_HIGHLIGHT: 'tts_highlightEnabled',
+  TTS_VOICE_PERSON: 'tts_voicePerson',
   LAST_BOOK_ID: 'last_opened_book_id',
 };
 
@@ -108,6 +110,7 @@ export class PreferencesService {
         speed: (await this.prefInstance.get(PREF_KEYS.TTS_SPEED, TTS_DEFAULTS.SPEED)) as number,
         autoNextChapter: (await this.prefInstance.get(PREF_KEYS.TTS_AUTO_NEXT, TTS_DEFAULTS.AUTO_NEXT_CHAPTER)) as boolean,
         highlightEnabled: (await this.prefInstance.get(PREF_KEYS.TTS_HIGHLIGHT, TTS_DEFAULTS.HIGHLIGHT_ENABLED)) as boolean,
+        voicePerson: (await this.prefInstance.get(PREF_KEYS.TTS_VOICE_PERSON, TTS_DEFAULTS.VOICE_PERSON)) as number,
       };
       return settings;
     } catch (err) {
@@ -121,6 +124,7 @@ export class PreferencesService {
       speed: TTS_DEFAULTS.SPEED,
       autoNextChapter: TTS_DEFAULTS.AUTO_NEXT_CHAPTER,
       highlightEnabled: TTS_DEFAULTS.HIGHLIGHT_ENABLED,
+      voicePerson: TTS_DEFAULTS.VOICE_PERSON,
     };
   }
 
@@ -130,6 +134,7 @@ export class PreferencesService {
       await this.prefInstance.put(PREF_KEYS.TTS_SPEED, settings.speed);
       await this.prefInstance.put(PREF_KEYS.TTS_AUTO_NEXT, settings.autoNextChapter);
       await this.prefInstance.put(PREF_KEYS.TTS_HIGHLIGHT, settings.highlightEnabled);
+      await this.prefInstance.put(PREF_KEYS.TTS_VOICE_PERSON, settings.voicePerson);
       await this.prefInstance.flush();
       LogUtil.info('TTS settings saved');
     } catch (err) {

@@ -1,9 +1,11 @@
 import { AppStorageV2 } from '@kit.ArkUI';
+import { common } from '@kit.AbilityKit';
 import { AppTheme } from '../common/theme/AppTheme';
 import { READER_THEMES, READER_DEFAULTS, TTS_DEFAULTS, ReaderTheme } from '../common/constants/ReaderConstants';
 import { ReaderSettings } from '../common/model/ReaderSettings';
 import { TtsSettings } from '../common/model/TtsSettings';
 import { PreferencesService } from '../service/PreferencesService';
+import { TtsService, VoiceOption } from '../service/TtsService';
 import { LogUtil } from '../common/utils/LogUtil';
 
 interface OptionItem<T> {
@@ -29,6 +31,10 @@ export struct SettingsPage {
   @State ttsSpeed: number = TTS_DEFAULTS.SPEED;
   @State ttsAutoNext: boolean = TTS_DEFAULTS.AUTO_NEXT_CHAPTER;
   @State ttsHighlight: boolean = TTS_DEFAULTS.HIGHLIGHT_ENABLED;
+  @State ttsVoicePerson: number = TTS_DEFAULTS.VOICE_PERSON;
+  @State voiceOptions: VoiceOption[] = [];
+  @State voicePickerVisible: boolean = false;
+  @State voicePickerLoading: boolean = false;
 
   // 通用
   @State storageUsed: string = '计算中...';
@@ -65,7 +71,19 @@ export struct SettingsPage {
 
   aboutToAppear(): void {
     this.loadSettings();
+    this.loadVoiceOptions();
     this.calculateStorage();
+  }
+
+  private async loadVoiceOptions(): Promise<void> {
+    try {
+      const context = this.getUIContext().getHostContext() as common.UIAbilityContext;
+      const voices = await TtsService.getAvailableVoices(context);
+      this.voiceOptions = voices.length > 0 ? voices : this.getFallbackVoiceOptions();
+    } catch (err) {
+      LogUtil.error(`Failed to load voice options: ${JSON.stringify(err)}`);
+      this.voiceOptions = this.getFallbackVoiceOptions();
+    }
   }
 
   private async loadSettings(): Promise<void> {
@@ -84,6 +102,7 @@ export struct SettingsPage {
       this.ttsSpeed = ttsSettings.speed;
       this.ttsAutoNext = ttsSettings.autoNextChapter;
       this.ttsHighlight = ttsSettings.highlightEnabled;
+      this.ttsVoicePerson = ttsSettings.voicePerson;
     } catch (err) {
       LogUtil.error(`Failed to load settings: ${JSON.stringify(err)}`);
     }
@@ -112,8 +131,44 @@ export struct SettingsPage {
       speed: this.ttsSpeed,
       autoNextChapter: this.ttsAutoNext,
       highlightEnabled: this.ttsHighlight,
+      voicePerson: this.ttsVoicePerson,
     };
     await prefService.saveTtsSettings(settings);
+  }
+
+  private getSelectedVoiceName(): string {
+    const option = this.voiceOptions.find((item) => item.person === this.ttsVoicePerson);
+    return option?.name || '默认音色';
+  }
+
+  private async openVoicePicker(): Promise<void> {
+    this.voicePickerVisible = true;
+    if (this.voiceOptions.length > 0) {
+      return;
+    }
+    this.voicePickerLoading = true;
+    try {
+      const context = this.getUIContext().getHostContext() as common.UIAbilityContext;
+      const voices = await TtsService.getAvailableVoices(context);
+      this.voiceOptions = voices.length > 0 ? voices : this.getFallbackVoiceOptions();
+    } catch (err) {
+      LogUtil.error(`Failed to load voices: ${JSON.stringify(err)}`);
+      this.voiceOptions = this.getFallbackVoiceOptions();
+    } finally {
+      this.voicePickerLoading = false;
+    }
+  }
+
+  private getFallbackVoiceOptions(): VoiceOption[] {
+    return [
+      { person: 0, name: '默认女声', description: '系统默认女声' }
+    ];
+  }
+
+  private selectVoice(person: number): void {
+    this.ttsVoicePerson = person;
+    this.saveTtsSettings();
+    this.voicePickerVisible = false;
   }
 
   private calculateStorage(): void {
@@ -420,7 +475,7 @@ export struct SettingsPage {
                 .fontColor(AppTheme.textPrimary)
                 .layoutWeight(1)
               Row() {
-                Text('普通话女声')
+                Text(this.getSelectedVoiceName())
                   .fontSize(14)
                   .fontColor(AppTheme.textSecondary)
                 Image($r('app.media.ic_arrow_right'))
@@ -430,7 +485,7 @@ export struct SettingsPage {
                   .margin({ left: 4 })
               }
               .alignItems(VerticalAlign.Center)
-              .onClick(() => {})
+              .onClick(() => { this.openVoicePicker() })
             }
             .width('100%')
             .padding(16)
@@ -634,6 +689,93 @@ export struct SettingsPage {
       }
       .layoutWeight(1)
       .scrollBar(BarState.Off)
+
+      // 音色选择弹窗
+      if (this.voicePickerVisible) {
+        Stack({ alignContent: Alignment.Bottom }) {
+          Row()
+            .width('100%')
+            .height('100%')
+            .backgroundColor('rgba(0,0,0,0.4)')
+            .onClick(() => { this.voicePickerVisible = false })
+
+          Column() {
+            Row()
+              .width(40)
+              .height(4)
+              .borderRadius(2)
+              .backgroundColor(AppTheme.borderDefault)
+              .margin({ top: 12, bottom: 12 })
+
+            Text('选择语音')
+              .fontSize(16)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(AppTheme.textPrimary)
+              .width('100%')
+              .padding({ left: 16, right: 16, bottom: 12 })
+
+            if (this.voicePickerLoading) {
+              Row() {
+                Text('正在加载可用音色...')
+                  .fontSize(14)
+                  .fontColor(AppTheme.textSecondary)
+              }
+              .width('100%')
+              .justifyContent(FlexAlign.Center)
+              .padding({ top: 32, bottom: 32 })
+            } else {
+              Scroll() {
+                Column({ space: 4 }) {
+                  ForEach(this.voiceOptions, (voice: VoiceOption) => {
+                    Row() {
+                      Column() {
+                        Text(voice.name)
+                          .fontSize(14)
+                          .fontColor(this.ttsVoicePerson === voice.person ? AppTheme.primary : AppTheme.textPrimary)
+                          .fontWeight(this.ttsVoicePerson === voice.person ? FontWeight.Medium : FontWeight.Normal)
+                        if (voice.description.length > 0 && voice.description !== voice.name) {
+                          Text(voice.description)
+                            .fontSize(12)
+                            .fontColor(AppTheme.textTertiary)
+                            .margin({ top: 2 })
+                        }
+                      }
+                      .alignItems(HorizontalAlign.Start)
+                      .layoutWeight(1)
+
+                      if (this.ttsVoicePerson === voice.person) {
+                        Image($r('app.media.ic_check'))
+                          .width(18)
+                          .height(18)
+                          .fillColor(AppTheme.primary)
+                      }
+                    }
+                    .width('100%')
+                    .padding(16)
+                    .backgroundColor(this.ttsVoicePerson === voice.person ? AppTheme.primaryLightest : Color.Transparent)
+                    .borderRadius(8)
+                    .onClick(() => { this.selectVoice(voice.person) })
+                  }, (voice: VoiceOption) => `${voice.person}`)
+                }
+                .width('100%')
+                .padding({ left: 12, right: 12 })
+              }
+              .width('100%')
+              .constraintSize({ maxHeight: 360 })
+              .scrollBar(BarState.Off)
+            }
+
+            Row().height(24)
+          }
+          .width('100%')
+          .backgroundColor(AppTheme.surfaceCard)
+          .borderRadius({ topLeft: 16, topRight: 16 })
+          .alignItems(HorizontalAlign.Center)
+        }
+        .width('100%')
+        .height('100%')
+        .position({ x: 0, y: 0 })
+      }
     }
     .width('100%')
     .height('100%')

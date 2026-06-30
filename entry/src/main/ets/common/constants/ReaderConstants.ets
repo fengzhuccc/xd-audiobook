@@ -55,12 +55,14 @@ export interface TtsDefaults {
   SPEED: number;
   AUTO_NEXT_CHAPTER: boolean;
   HIGHLIGHT_ENABLED: boolean;
+  VOICE_PERSON: number;
 }
 
 export const TTS_DEFAULTS: TtsDefaults = {
   SPEED: 1.0,
   AUTO_NEXT_CHAPTER: true,
   HIGHLIGHT_ENABLED: true,
+  VOICE_PERSON: 0,
 };
 
 // 书架网格

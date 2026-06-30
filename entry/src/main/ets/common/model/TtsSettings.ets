@@ -3,4 +3,5 @@ export interface TtsSettings {
   speed: number;
   autoNextChapter: boolean;
   highlightEnabled: boolean;
+  voicePerson: number;
 }

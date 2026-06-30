@@ -4,6 +4,8 @@ import { AppTheme } from '../common/theme/AppTheme';
 import { TtsService, TtsState } from '../service/TtsService';
 import { BookDatabase } from '../service/BookDatabase';
 import { BookProgress } from '../common/model/BookProgress';
+import { TtsSettings } from '../common/model/TtsSettings';
+import { PreferencesService } from '../service/PreferencesService';
 import { LogUtil } from '../common/utils/LogUtil';
 import { BusinessError } from '@kit.BasicServicesKit';
 import { BookParserFactory, IBookParserHandler, ParsedSpineItem } from '../service/BookParser';
@@ -129,8 +131,22 @@ struct AudioPlayerPage {
         }
       });
 
+      // 读取朗读设置并初始化
+      let ttsSettings: TtsSettings | null = null;
+      try {
+        const prefService = AppStorageV2.connect(PreferencesService, 'prefService') as PreferencesService;
+        ttsSettings = await prefService.getTtsSettings();
+      } catch (e) {
+        LogUtil.warn(`Failed to load TTS settings for AudioPlayer: ${JSON.stringify(e)}`);
+      }
+
       // 初始化并开始朗读
-      await this.ttsService.init(context, bookInfo.bookTitle, bookInfo.bookCreator || '');
+      await this.ttsService.init(
+        context,
+        bookInfo.bookTitle,
+        bookInfo.bookCreator || '',
+        ttsSettings?.voicePerson
+      );
       await this.ttsService.startReading(this.bookHandler, this.currentSpineIndex);
     } catch (err) {
       const error = err as BusinessError;

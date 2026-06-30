@@ -2,6 +2,7 @@ import { common } from '@kit.AbilityKit';
 import { textToSpeech } from '@kit.CoreSpeechKit';
 import { BusinessError } from '@kit.BasicServicesKit';
 import { LogUtil } from '../common/utils/LogUtil';
+import { TTS_DEFAULTS } from '../common/constants/ReaderConstants';
 import { IBookParserHandler, htmlToPlainText } from './BookParser';
 
 export type TtsState = 'idle' | 'playing' | 'paused' | 'stopped' | 'error';
@@ -12,6 +13,12 @@ export interface TtsEventCallback {
   onSentenceChange?: (spineIndex: number, sentenceIndex: number) => void;
   onChapterChange?: (spineIndex: number) => void;
   onError?: (message: string) => void;
+}
+
+export interface VoiceOption {
+  person: number;
+  name: string;
+  description: string;
 }
 
 /**
@@ -30,6 +37,7 @@ export class TtsService {
   private sentences: string[] = [];
   private currentSentenceIndex: number = 0;
   private speed: number = 1.0;
+  private voicePerson: number = TTS_DEFAULTS.VOICE_PERSON;
   private currentRequestId: string = '';
   private pendingAction: 'none' | 'pause' | 'stop' | 'speed' = 'none';
   private eventCallback: TtsEventCallback | null = null;
@@ -58,12 +66,15 @@ export class TtsService {
     this.eventCallback?.onError?.(message);
   }
 
-  async init(context: common.UIAbilityContext, bookTitle: string, bookAuthor: string): Promise<void> {
+  async init(context: common.UIAbilityContext, bookTitle: string, bookAuthor: string, voicePerson?: number): Promise<void> {
     if (this.isInited) {
       return;
     }
     this.bookTitle = bookTitle;
     this.bookAuthor = bookAuthor;
+    if (voicePerson !== undefined) {
+      this.voicePerson = voicePerson;
+    }
     try {
       this.ttsEngine = await this.createEngine();
       this.setupListener();
@@ -83,7 +94,7 @@ export class TtsService {
     return new Promise((resolve, reject) => {
       const initParams: textToSpeech.CreateEngineParams = {
         language: 'zh-CN',
-        person: 0,
+        person: this.voicePerson,
         online: 1,
         extraParams: {
           style: 'interaction-broadcast',
@@ -96,7 +107,58 @@ export class TtsService {
           LogUtil.error(`Failed to create TTS engine: ${err.code} ${err.message}`);
           reject(err);
         } else {
+          LogUtil.info(`TTS engine created with person=${this.voicePerson}`);
           resolve(engine);
+        }
+      });
+    });
+  }
+
+  /**
+   * 查询设备当前支持的音色列表（需要临时创建一个引擎实例）。
+   */
+  static getAvailableVoices(context: common.UIAbilityContext): Promise<VoiceOption[]> {
+    return new Promise((resolve, reject) => {
+      const initParams: textToSpeech.CreateEngineParams = {
+        language: 'zh-CN',
+        person: 0,
+        online: 1,
+        extraParams: {
+          style: 'interaction-broadcast',
+          locate: 'CN',
+          name: 'AudioBookVoiceQuery'
+        }
+      };
+      textToSpeech.createEngine(initParams, async (err: BusinessError, engine: textToSpeech.TextToSpeechEngine) => {
+        if (err) {
+          LogUtil.error(`Failed to create temp TTS engine for voice query: ${err.code} ${err.message}`);
+          reject(err);
+          return;
+        }
+        try {
+          const query: textToSpeech.VoiceQuery = {
+            requestId: `voice-query-${Date.now()}`,
+            online: 1
+          };
+          const voices = await engine.listVoices(query);
+          const options: VoiceOption[] = voices
+            .filter((v) => v.status === 'GA')
+            .map((v) => ({
+              person: v.person,
+              name: v.description || `${v.language}-${v.person}`,
+              description: v.description || ''
+            }));
+          LogUtil.info(`Available TTS voices: ${options.map((o) => `${o.person}:${o.name}`).join(', ')}`);
+          resolve(options);
+        } catch (listErr) {
+          LogUtil.error(`Failed to list voices: ${(listErr as BusinessError).message}`);
+          reject(listErr);
+        } finally {
+          try {
+            engine.shutdown();
+          } catch (e) {
+            LogUtil.warn(`Failed to shutdown temp TTS engine: ${JSON.stringify(e)}`);
+          }
         }
       });
     });
@@ -297,6 +359,56 @@ export class TtsService {
 
   getCurrentSpineIndex(): number {
     return this.currentSpineIndex;
+  }
+
+  getVoicePerson(): number {
+    return this.voicePerson;
+  }
+
+  async setVoicePerson(person: number): Promise<void> {
+    if (this.voicePerson === person) {
+      return;
+    }
+    this.voicePerson = person;
+    LogUtil.info(`TTS setVoicePerson: ${person}`);
+    if (!this.isInited || !this.ttsEngine) {
+      return;
+    }
+
+    const wasPlaying = this.state === 'playing';
+    const savedHandler = this.bookParserHandler;
+    const savedSpineIndex = this.currentSpineIndex;
+    const savedSentenceIndex = this.currentSentenceIndex;
+    const savedSentences = this.sentences.slice();
+
+    try {
+      this.stopEngine();
+      this.ttsEngine.shutdown();
+      this.ttsEngine = null;
+      this.isInited = false;
+      this.pendingAction = 'none';
+      this.currentRequestId = '';
+
+      this.ttsEngine = await this.createEngine();
+      this.setupListener();
+      this.isInited = true;
+
+      // 恢复播放上下文
+      this.bookParserHandler = savedHandler;
+      this.currentSpineIndex = savedSpineIndex;
+      this.sentences = savedSentences;
+      this.currentSentenceIndex = savedSentenceIndex;
+
+      if (wasPlaying) {
+        this.state = 'playing';
+        this.emitState();
+        this.speakCurrentSentence();
+      }
+    } catch (err) {
+      this.state = 'error';
+      this.emitState();
+      this.emitError(`切换音色失败: ${(err as BusinessError).message}`);
+    }
   }
 
   setSpeed(speed: number): void {
