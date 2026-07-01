@@ -104,8 +104,15 @@ export class TtsService {
       };
       textToSpeech.createEngine(initParams, (err: BusinessError, engine: textToSpeech.TextToSpeechEngine) => {
         if (err) {
-          LogUtil.error(`Failed to create TTS engine: ${err.code} ${err.message}`);
-          reject(err);
+          LogUtil.error(`Failed to create TTS engine with person=${this.voicePerson}: ${err.code} ${err.message}`);
+          // 如果用户选择的音色创建失败，尝试回退到默认音色
+          if (this.voicePerson !== TTS_DEFAULTS.VOICE_PERSON) {
+            LogUtil.warn(`Fallback to default voice person=${TTS_DEFAULTS.VOICE_PERSON}`);
+            this.voicePerson = TTS_DEFAULTS.VOICE_PERSON;
+            this.createEngine().then(resolve).catch(reject);
+          } else {
+            reject(err);
+          }
         } else {
           LogUtil.info(`TTS engine created with person=${this.voicePerson}`);
           resolve(engine);
