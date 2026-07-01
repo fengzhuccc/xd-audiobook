@@ -161,7 +161,7 @@ export struct SettingsPage {
 
   private getFallbackVoiceOptions(): VoiceOption[] {
     return [
-      { person: 0, name: '默认女声', description: '系统默认女声' }
+      { person: 0, name: '默认女声', description: '系统默认女声' } as VoiceOption
     ];
   }
 

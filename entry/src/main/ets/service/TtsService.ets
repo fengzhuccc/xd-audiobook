@@ -143,7 +143,7 @@ export class TtsService {
           const voices = await engine.listVoices(query);
           const options: VoiceOption[] = voices
             .filter((v) => v.status === 'GA')
-            .map((v) => ({
+            .map((v): VoiceOption => ({
               person: v.person,
               name: v.description || `${v.language}-${v.person}`,
               description: v.description || ''
@@ -282,10 +282,11 @@ export class TtsService {
     this.currentRequestId = `${this.currentSpineIndex}-${this.currentSentenceIndex}-${Date.now()}`;
     LogUtil.info(`TTS speak: ${text.substring(0, 40)}...`);
     this.pendingAction = 'none';
-    this.ttsEngine.speak(text, {
+    const speakParams: textToSpeech.SpeakParams = {
       requestId: this.currentRequestId,
       extraParams: { speed: this.speed }
-    });
+    };
+    this.ttsEngine.speak(text, speakParams);
   }
 
   pause(): void {
