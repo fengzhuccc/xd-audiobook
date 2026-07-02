@@ -121,6 +121,29 @@ struct AudioPlayerPage {
     return `第${index + 1}章`;
   }
 
+  private getPrevText(): string {
+    if (this.currentSentenceIndex <= 0) {
+      return '';
+    }
+    const start = Math.max(0, this.currentSentenceIndex - 2);
+    return this.sentences.slice(start, this.currentSentenceIndex).join('。') + '。';
+  }
+
+  private getCurrentText(): string {
+    if (this.currentSentenceIndex < this.sentences.length) {
+      return this.sentences[this.currentSentenceIndex] + '。';
+    }
+    return '';
+  }
+
+  private getNextText(): string {
+    if (this.currentSentenceIndex + 1 >= this.sentences.length) {
+      return '';
+    }
+    const end = Math.min(this.sentences.length, this.currentSentenceIndex + 3);
+    return this.sentences.slice(this.currentSentenceIndex + 1, end).join('。') + '。';
+  }
+
   private togglePlayPause(): void {
     if (this.ttsState === 'playing') {
       this.ttsService.pause();
@@ -307,39 +330,44 @@ struct AudioPlayerPage {
         .alignItems(VerticalAlign.Center)
         .margin({ bottom: 12 })
 
-        // 正文
-        Column() {
-          if (this.currentSentenceIndex > 0) {
-            Text(this.sentences.slice(0, this.currentSentenceIndex).join('。') + '。')
-              .fontSize(13)
-              .fontFamily('serif')
-              .lineHeight(28)
-              .letterSpacing(0.5)
-              .fontColor(AppTheme.textTertiary)
+        // 正文：只显示当前句上下文，限制高度避免挤出底部控制栏
+        Scroll() {
+          Column() {
+            if (this.currentSentenceIndex > 0) {
+              Text(this.getPrevText())
+                .fontSize(13)
+                .fontFamily('serif')
+                .lineHeight(28)
+                .letterSpacing(0.5)
+                .fontColor(AppTheme.textTertiary)
+            }
+            if (this.currentSentenceIndex < this.sentences.length) {
+              Text(this.getCurrentText())
+                .fontSize(13)
+                .fontFamily('serif')
+                .lineHeight(28)
+                .letterSpacing(0.5)
+                .fontColor(AppTheme.textPrimary)
+                .backgroundColor(AppTheme.primaryLighter)
+                .borderRadius(4)
+                .padding({ left: 4, right: 4, top: 2, bottom: 2 })
+                .shadow({ radius: 12, color: 'rgba(139,105,20,0.15)', offsetY: 0 })
+            }
+            if (this.currentSentenceIndex + 1 < this.sentences.length) {
+              Text(this.getNextText())
+                .fontSize(13)
+                .fontFamily('serif')
+                .lineHeight(28)
+                .letterSpacing(0.5)
+                .fontColor(AppTheme.textSecondary)
+            }
           }
-          if (this.currentSentenceIndex < this.sentences.length) {
-            Text(this.sentences[this.currentSentenceIndex] + '。')
-              .fontSize(13)
-              .fontFamily('serif')
-              .lineHeight(28)
-              .letterSpacing(0.5)
-              .fontColor(AppTheme.textPrimary)
-              .backgroundColor(AppTheme.primaryLighter)
-              .borderRadius(4)
-              .padding({ left: 4, right: 4, top: 2, bottom: 2 })
-              .shadow({ radius: 12, color: 'rgba(139,105,20,0.15)', offsetY: 0 })
-          }
-          if (this.currentSentenceIndex + 1 < this.sentences.length) {
-            Text(this.sentences.slice(this.currentSentenceIndex + 1, this.currentSentenceIndex + 3).join('。') + '。')
-              .fontSize(13)
-              .fontFamily('serif')
-              .lineHeight(28)
-              .letterSpacing(0.5)
-              .fontColor(AppTheme.textSecondary)
-          }
+          .width('100%')
+          .alignItems(HorizontalAlign.Start)
         }
         .width('100%')
-        .alignItems(HorizontalAlign.Start)
+        .constraintSize({ maxHeight: 140 })
+        .scrollBar(BarState.Off)
       }
       .width('100%')
       .alignItems(HorizontalAlign.Start)
