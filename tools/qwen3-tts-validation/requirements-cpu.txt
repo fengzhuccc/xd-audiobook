@@ -1,0 +1,28 @@
+# Qwen3-TTS 验证环境依赖（CPU 版本，无独立显卡时使用）
+# PyTorch 需要在脚本中单独安装 CPU 版本：
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+# 建议使用 Python 3.10+
+
+# 核心框架
+transformers>=4.46.0
+accelerate>=0.25.0
+sentencepiece>=0.1.99
+protobuf>=3.20.0
+
+# 音频处理
+soundfile>=0.12.1
+librosa>=0.10.1
+
+# ONNX 导出与推理（CPU 版）
+onnx>=1.16.0
+onnxruntime>=1.18.0
+
+# 量化工具（可选）
+onnxruntime-tools>=1.7.0
+
+# 模型下载
+huggingface-hub>=0.24.0
+
+# 其他工具
+tqdm>=4.66.0
+numpy>=1.24.0

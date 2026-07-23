@@ -11,31 +11,39 @@
 ## 环境要求
 
 - Windows 10/11
-- Python 3.10+（建议用 [Miniconda](https://docs.conda.io/en/latest/miniconda.html) 或官方安装包）
+- Python 3.10+（[官方安装包](https://www.python.org/downloads/) 即可，**不需要 conda**）
 - 至少 8GB 内存，建议 16GB
 - 硬盘空间：预留 10GB
-- 可选：NVIDIA GPU（可加速推理，但不是必须）
+- **显卡不是必须的**：脚本会自动检测是否有 NVIDIA 独立显卡。没有显卡时使用 CPU 运行，速度较慢但能正常工作。
 
 ## 快速开始
 
-### 方式一：一键运行（推荐）
+### 方式一：使用系统 Python + venv（推荐，无需 conda）
 
 用 PowerShell 打开本目录，执行：
+
+```powershell
+.\run_all_venv.ps1
+```
+
+脚本会自动完成：创建 `.venv` 虚拟环境 → 安装 CPU 版 PyTorch 和其他依赖 → 下载模型 → 合成测试音频 → 尝试导出 ONNX。
+
+### 方式二：使用 conda
+
+如果你已经装了 conda，也可以走 conda 版本：
 
 ```powershell
 .\run_all.ps1
 ```
 
-脚本会自动完成：创建 conda 虚拟环境 → 安装依赖 → 下载模型 → 合成测试音频 → 尝试导出 ONNX。
-
-### 方式二：分步执行
+### 方式三：分步执行（venv 版本）
 
 ```powershell
 # 1. 创建环境并安装依赖
-.\setup_env.ps1
+.\setup_env_venv.ps1
 
-# 2. 激活环境（PowerShell 需要执行过 conda init powershell）
-conda activate qwen3-tts
+# 2. 激活环境
+.venv\Scripts\Activate.ps1
 
 # 3. 下载模型
 python download_model.py

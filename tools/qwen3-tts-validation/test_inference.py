@@ -41,16 +41,28 @@ def main():
         # 这里兼容 transformers 通用写法
         from transformers import AutoModel, AutoTokenizer
 
+        # 自动检测是否有独立显卡，无显卡时使用 CPU + float32
+        if torch.cuda.is_available():
+            device = "cuda"
+            torch_dtype = torch.float16
+            print("检测到 CUDA，使用 GPU 加速")
+        else:
+            device = "cpu"
+            torch_dtype = torch.float32
+            print("未检测到 CUDA，使用 CPU 运行（速度较慢，但能正常工作）")
+
         model = AutoModel.from_pretrained(
             str(model_dir),
-            torch_dtype=torch.float16,
-            device_map="auto",
+            torch_dtype=torch_dtype,
+            device_map="auto" if device == "cuda" else None,
             trust_remote_code=True,
         )
+        if device == "cpu":
+            model = model.to("cpu")
         tokenizer = AutoTokenizer.from_pretrained(str(model_dir), trust_remote_code=True)
     except Exception as e:
         print(f"模型加载失败: {e}")
-        print("\n提示: 如果显存不足，可尝试把 torch_dtype 改为 torch.float32 或添加 low_cpu_mem_usage=True")
+        print("\n提示: 如果内存不足，可尝试添加 low_cpu_mem_usage=True")
         sys.exit(1)
 
     load_time = time.time() - start
