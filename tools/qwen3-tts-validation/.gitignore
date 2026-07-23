@@ -1,0 +1,13 @@
+# 模型文件和生成产物不进入 Git
+models/
+outputs/
+logs/
+__pycache__/
+*.pyc
+*.wav
+*.onnx
+*.onnx.data
+*.safetensors
+*.bin
+*.pt
+*.pth
