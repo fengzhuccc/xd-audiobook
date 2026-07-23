@@ -2,7 +2,19 @@
 # -*- coding: utf-8 -*-
 """
 尝试把 Qwen3-TTS 0.6B 导出为 ONNX 格式。
-优先使用 tensorrt-edgellm-export，失败后回退到 torch.onnx.export。
+
+重要说明：
+Qwen3-TTS 不是普通的“输入 -> 输出”前馈网络，而是包含三个核心组件：
+  1. Talker（自回归 LLM）：文本 -> 第 0 个 codebook token
+  2. CodePredictor：预测其余 15 个 codebook token
+  3. Code2Wav（声码器）：16 个 codebook -> 波形
+
+官方推荐的导出工具是 NVIDIA TensorRT-Edge-LLM 的 tensorrt-edgellm-export，
+它会按正确输入形状分别导出三个子图为 ONNX。
+
+Windows + CPU 环境下通常无法完整走通官方导出，因此本脚本：
+  - 优先检测并使用 tensorrt-edgellm-export
+  - 检测不到时，给出明确的后续指引，而不是用错误的占位输入反复尝试
 """
 
 import os
@@ -38,96 +50,50 @@ def export_with_tensorrt_edgellm(model_dir: Path, output_dir: Path) -> bool:
         return False
 
 
-def export_with_torch_onnx(model_dir: Path, output_dir: Path) -> bool:
-    """回退：用 torch.onnx.export 分别导出 Talker / CodePredictor / Code2Wav。
-
-    注意：这是通用回退方案，可能需要根据 Qwen3-TTS 实际源码调整输入输出。
-    """
+def inspect_model_structure(model_dir: Path, output_dir: Path) -> bool:
+    """加载模型并保存结构信息，供后续手动拆分子模块导出。"""
     try:
         import torch
-        import torch.onnx
         from qwen_tts import Qwen3TTSModel
     except ImportError as e:
         print(f"缺少依赖: {e}")
         print("请确认已安装官方包: pip install qwen-tts")
         return False
 
-    print("\n使用 torch.onnx.export 作为回退方案导出...")
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    # 加载模型
-    print("加载模型（可能需要几分钟）...")
+    print("\n加载模型以获取结构信息（可能需要几分钟）...")
     try:
         model = Qwen3TTSModel.from_pretrained(
             str(model_dir),
             dtype=torch.float32,
         )
-        # Qwen3TTSModel 是包装类，尝试对内部 nn.Module 切 eval 模式
-        if hasattr(model, "model") and hasattr(model.model, "eval"):
-            model.model.eval()
-        elif hasattr(model, "eval"):
-            model.eval()
     except Exception as e:
         print(f"加载模型失败: {e}")
         return False
 
-    # Qwen3-TTS 是三个子模块组合。这里尝试自动识别常见字段名。
-    # 如果自动识别失败，会打印模型结构供后续手动调整。
-    submodules = []
-    if hasattr(model, "talker"):
-        submodules.append(("llm", model.talker))
-    if hasattr(model, "code_predictor"):
-        submodules.append(("code_predictor", model.code_predictor))
-    if hasattr(model, "code2wav"):
-        submodules.append(("code2wav", model.code2wav))
+    output_dir.mkdir(parents=True, exist_ok=True)
+    inspect_path = output_dir / "model_structure.txt"
 
-    # 如果 talker/code_predictor/code2wav 没找到，尝试常见内部模型名
-    if not submodules:
-        for attr_name in ["model", "tts_model", "llm", "backbone", "transformer"]:
-            if hasattr(model, attr_name):
-                submodule = getattr(model, attr_name)
-                if hasattr(submodule, "forward") or hasattr(submodule, "__call__"):
-                    print(f"发现内部模型属性: model.{attr_name}")
-                    submodules.append((attr_name, submodule))
-                break
-
-    if not submodules:
-        print("警告: 未能自动识别 talker / code_predictor / code2wav 子模块。")
-        print("请查看模型结构后手动调整本脚本。")
-        print("\n模型属性列表（用于调试）:")
+    with open(inspect_path, "w", encoding="utf-8") as f:
+        f.write("Qwen3TTSModel attributes:\n")
         for attr in dir(model):
             if not attr.startswith("_"):
-                print(f"  - {attr}")
-        print("\n模型结构:")
-        print(model)
-        # 把整个模型作为一个 onnx 导出（通常不是最优，但可作为验证）
-        submodules.append(("qwen3_tts_full", model))
+                f.write(f"  - {attr}\n")
 
-    dummy_input = torch.randn(1, 1, 80)  # 占位输入，实际需要 token ids
-    for name, module in submodules:
-        sub_dir = output_dir / name
-        sub_dir.mkdir(parents=True, exist_ok=True)
-        onnx_path = sub_dir / "model.onnx"
+        if hasattr(model, "model"):
+            inner = model.model
+            f.write("\nmodel.model attributes:\n")
+            for attr in dir(inner):
+                if not attr.startswith("_"):
+                    f.write(f"  - {attr}\n")
 
-        print(f"导出 {name} -> {onnx_path}")
-        try:
-            # 新版 PyTorch 默认 dynamo=True，不支持 dynamic_axes；
-            # 这里先使用传统 torchscript 导出器，占位输入即可跑通验证。
-            torch.onnx.export(
-                module,
-                dummy_input,
-                str(onnx_path),
-                input_names=["input"],
-                output_names=["output"],
-                dynamic_axes={"input": {0: "batch"}, "output": {0: "batch"}},
-                opset_version=17,
-                dynamo=False,
-            )
-            print(f"  {name} 导出成功")
-        except Exception as e:
-            print(f"  {name} 导出失败: {e}")
-            print("  提示: 占位输入可能不匹配，需要根据实际模型输入维度修改脚本。")
+            f.write("\nmodel.named_modules():\n")
+            try:
+                for name, _ in inner.named_modules():
+                    f.write(f"  {name}\n")
+            except Exception as e:
+                f.write(f"  无法枚举: {e}\n")
 
+    print(f"模型结构已保存到: {inspect_path}")
     return True
 
 
@@ -150,13 +116,28 @@ def main():
         print(f"\nONNX 导出完成: {output_dir}")
         return
 
-    # 方式二：回退
-    print("\n尝试回退导出方式...")
-    if export_with_torch_onnx(model_dir, output_dir):
-        print(f"\n回退导出完成，输出目录: {output_dir}")
-        print("注意：回退方式导出的 ONNX 可能需要进一步调整才能用于移动端部署。")
-    else:
-        print("\nONNX 导出失败。请根据报错信息调整脚本或手动导出。")
+    # 方式二：保存模型结构并给出指引
+    print("\n未找到官方导出工具 tensorrt-edgellm-export。")
+    print("Qwen3-TTS 是 Talker + CodePredictor + Code2Wav 三阶段自回归模型，")
+    print("无法直接用 torch.onnx.export 导出完整生成流程。")
+    print()
+    print("推荐方案（按可行性排序）：")
+    print()
+    print("1. 在 Linux 主机/服务器上安装 TensorRT-Edge-LLM：")
+    print("   https://nvidia.github.io/TensorRT-Edge-LLM/latest/user_guide/examples/tts.html")
+    print("   执行：tensorrt-edgellm-export Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice <输出目录>")
+    print("   这是官方验证过的导出路径，会得到 llm/ code_predictor/ code2wav/ 三个 ONNX。")
+    print()
+    print("2. 如果要在 HarmonyOS 手机上跑，需要把上述 ONNX 转换为 OM 格式，")
+    print("   并针对 NPU 分别优化 Talker（自回归）、CodePredictor、Code2Wav。")
+    print()
+    print("3. 如果只是想本地验证模型效果，ONNX 导出不是必须的。")
+    print("   运行 python test_inference.py 合成音频，确认音色和自然度即可。")
+    print()
+
+    inspect_model_structure(model_dir, output_dir)
+
+    print("\n结论：Windows 本地目前无法一键导出可用 ONNX，建议用方案 1 在 Linux 下导出。")
 
 
 if __name__ == "__main__":

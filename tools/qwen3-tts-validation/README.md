@@ -2,10 +2,11 @@
 
 本目录包含在 Windows PC 上快速验证 Qwen3-TTS 0.6B 模型的脚本。
 
-验证目标：
+## 验证目标
+
 1. 下载 `Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice` 模型
 2. 用 Python 合成一段中文语音，确认模型效果
-3. 尝试导出 ONNX（FP16，先不量化）
+3. 评估 ONNX 导出可行性（说明见下文）
 4. 记录模型体积和推理速度，作为后续鸿蒙集成的参考
 
 ## 环境要求
@@ -94,11 +95,15 @@ python download_model.py
 
 也可以下载到 models/ 目录后重新运行验证脚本。
 
-### ONNX 导出失败
+### ONNX 导出说明
 
-`export_onnx.py` 首先尝试 NVIDIA `tensorrt-edgellm-export`。如果未安装或失败，会回退到通用 `torch.onnx.export` 方式导出三个子模块（Talker / CodePredictor / Code2Wav）。
+Qwen3-TTS 由 Talker（自回归 LLM）、CodePredictor、Code2Wav 三个组件组成，不是简单的前馈网络。`export_onnx.py` 会优先尝试 NVIDIA `tensorrt-edgellm-export`（官方推荐工具）。
 
-回退方案可能不是最优 ONNX 图，但足够用来验证鸿蒙部署可行性。
+Windows 本地一般没有该工具，因此脚本会：
+- 保存模型结构到 `outputs/qwen3_tts_onnx/model_structure.txt`
+- 给出在 Linux 服务器上使用 TensorRT-Edge-LLM 导出的指引
+
+如果你只是想验证模型效果（音色、自然度、速度），**ONNX 导出不是必须的**，运行 `test_inference.py` 即可。
 
 ## 下一步
 
