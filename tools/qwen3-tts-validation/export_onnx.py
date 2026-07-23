@@ -71,9 +71,8 @@ def export_with_torch_onnx(model_dir: Path, output_dir: Path) -> bool:
         print(f"加载模型失败: {e}")
         return False
 
-    # Qwen3-TTS 是三个子模块组合。这里仅做占位演示：
-    # 实际导出时需要分别定位 model.talker, model.code_predictor, model.code2wav
-    # 具体字段名需要查看 Qwen3-TTS 源码或 print(model) 确认。
+    # Qwen3-TTS 是三个子模块组合。这里尝试自动识别常见字段名。
+    # 如果自动识别失败，会打印模型结构供后续手动调整。
     submodules = []
     if hasattr(model, "talker"):
         submodules.append(("llm", model.talker))
@@ -82,9 +81,25 @@ def export_with_torch_onnx(model_dir: Path, output_dir: Path) -> bool:
     if hasattr(model, "code2wav"):
         submodules.append(("code2wav", model.code2wav))
 
+    # 如果 talker/code_predictor/code2wav 没找到，尝试常见内部模型名
+    if not submodules:
+        for attr_name in ["model", "tts_model", "llm", "backbone", "transformer"]:
+            if hasattr(model, attr_name):
+                submodule = getattr(model, attr_name)
+                if hasattr(submodule, "forward") or hasattr(submodule, "__call__"):
+                    print(f"发现内部模型属性: model.{attr_name}")
+                    submodules.append((attr_name, submodule))
+                break
+
     if not submodules:
         print("警告: 未能自动识别 talker / code_predictor / code2wav 子模块。")
         print("请查看模型结构后手动调整本脚本。")
+        print("\n模型属性列表（用于调试）:")
+        for attr in dir(model):
+            if not attr.startswith("_"):
+                print(f"  - {attr}")
+        print("\n模型结构:")
+        print(model)
         # 把整个模型作为一个 onnx 导出（通常不是最优，但可作为验证）
         submodules.append(("qwen3_tts_full", model))
 
