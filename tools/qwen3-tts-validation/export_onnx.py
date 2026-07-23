@@ -46,7 +46,7 @@ def export_with_torch_onnx(model_dir: Path, output_dir: Path) -> bool:
     try:
         import torch
         import torch.onnx
-        from qwen3_tts import Qwen3TTS
+        from qwen_tts import Qwen3TTSModel
     except ImportError as e:
         print(f"缺少依赖: {e}")
         print("请确认已安装官方包: pip install qwen-tts")
@@ -58,9 +58,9 @@ def export_with_torch_onnx(model_dir: Path, output_dir: Path) -> bool:
     # 加载模型
     print("加载模型（可能需要几分钟）...")
     try:
-        model = Qwen3TTS.from_pretrained(
+        model = Qwen3TTSModel.from_pretrained(
             str(model_dir),
-            torch_dtype=torch.float32,
+            dtype=torch.float32,
         )
         model.eval()
     except Exception as e:

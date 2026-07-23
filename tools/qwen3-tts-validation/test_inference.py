@@ -37,29 +37,28 @@ def main():
     start = time.time()
 
     try:
-        # Qwen3-TTS 必须使用官方 qwen-tts 包里的 Qwen3TTS 类加载
-        # AutoModel / transformers 通用写法无法识别 qwen3_tts 架构
-        from qwen3_tts import Qwen3TTS
+        # Qwen3-TTS 官方包：安装 qwen-tts，导入模块为 qwen_tts
+        from qwen_tts import Qwen3TTSModel
 
         # 自动检测是否有独立显卡，无显卡时使用 CPU + float32
         if torch.cuda.is_available():
             device = "cuda"
-            torch_dtype = torch.float16
+            dtype = torch.bfloat16
             print("检测到 CUDA，使用 GPU 加速")
         else:
             device = "cpu"
-            torch_dtype = torch.float32
+            dtype = torch.float32
             print("未检测到 CUDA，使用 CPU 运行（速度较慢，但能正常工作）")
 
-        model = Qwen3TTS.from_pretrained(
+        model = Qwen3TTSModel.from_pretrained(
             str(model_dir),
-            torch_dtype=torch_dtype,
+            dtype=dtype,
             device_map="auto" if device == "cuda" else None,
         )
         if device == "cpu":
             model = model.to("cpu")
     except ImportError as e:
-        print(f"导入 Qwen3TTS 失败: {e}")
+        print(f"导入 Qwen3TTSModel 失败: {e}")
         print("\n请确认已安装官方包: pip install qwen-tts")
         sys.exit(1)
     except Exception as e:
@@ -76,14 +75,14 @@ def main():
         "这是一个关于勇气与成长的故事。",
     ]
 
-    # CustomVoice 内置音色（官方 9 个预设音色，名称可能需要根据实际模型调整）
-    speakers = ["Vivian", "Ono_Anna", "xiaoyan"]
+    # CustomVoice 内置音色（官方 9 个预设音色，常见如 Vivian、Ono_Anna 等）
+    speakers = ["Vivian", "Ono_Anna"]
 
     report = {
         "model": "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
         "model_dir": str(model_dir),
         "load_time_sec": f"{load_time:.2f}",
-        "device": str(next(model.parameters()).device),
+        "device": str(next(model.model.parameters()).device) if hasattr(model, "model") else "unknown",
         "samples": [],
     }
 
@@ -95,24 +94,26 @@ def main():
         try:
             infer_start = time.time()
 
-            # Qwen3-TTS 基础生成接口
-            audio = model.generate(
-                text,
+            # CustomVoice 模型使用 generate_custom_voice
+            wavs, sample_rate = model.generate_custom_voice(
+                text=text,
+                language="Chinese",
                 speaker=speaker,
             )
 
-            # 不同模型返回格式可能不同：numpy array 或 torch.Tensor
+            # wavs 是 list/array，取第一条
+            audio = wavs[0] if isinstance(wavs, (list, tuple)) else wavs
             if isinstance(audio, torch.Tensor):
                 audio = audio.cpu().float().numpy()
             if audio.ndim > 1:
                 audio = audio.squeeze()
 
             infer_time = time.time() - infer_start
-            duration = len(audio) / 24000.0  # Qwen3-TTS 默认 24kHz
+            duration = len(audio) / sample_rate if sample_rate > 0 else 0.0
             rtf = infer_time / duration if duration > 0 else 0.0
 
             output_wav = output_dir / f"test_qwen_tts_{idx}_{speaker}.wav"
-            sf.write(output_wav, audio, 24000)
+            sf.write(output_wav, audio, sample_rate)
 
             print(f"音频长度: {duration:.2f}s, 合成耗时: {infer_time:.2f}s, RTF: {rtf:.3f}")
             print(f"已保存: {output_wav}")
