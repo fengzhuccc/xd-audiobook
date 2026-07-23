@@ -1,4 +1,4 @@
-# Qwen3-TTS 0.6B Windows 本地验证 - 使用系统 Python + venv 初始化
+﻿# Qwen3-TTS 0.6B Windows 本地验证 - 使用系统 Python + venv 初始化
 # 用法: .\setup_env_venv.ps1
 
 $ErrorActionPreference = "Stop"
