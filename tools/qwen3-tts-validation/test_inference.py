@@ -7,12 +7,30 @@
 import os
 import sys
 import time
-import json
+import shutil
+import subprocess
 from pathlib import Path
 
 import numpy as np
 import soundfile as sf
 import torch
+
+
+def check_sox():
+    """检测系统是否已安装 SoX（Qwen3-TTS 在 Windows 上依赖 sox.exe）。"""
+    sox_path = shutil.which("sox")
+    if sox_path:
+        return True
+    # Windows 上常见安装路径
+    common_paths = [
+        r"C:\Program Files (x86)\sox-14-4-2\sox.exe",
+        r"C:\Program Files\sox-14-4-2\sox.exe",
+    ]
+    for p in common_paths:
+        if Path(p).exists():
+            os.environ["PATH"] = str(Path(p).parent) + os.pathsep + os.environ.get("PATH", "")
+            return True
+    return False
 
 
 def write_report(report_path: Path, data: dict):
@@ -55,8 +73,8 @@ def main():
             dtype=dtype,
             device_map="auto" if device == "cuda" else None,
         )
-        if device == "cpu":
-            model = model.to("cpu")
+        # 注意：Qwen3TTSModel 是包装类，没有 .to() 方法，
+        # device_map=None 时模型默认已在 CPU 上
     except ImportError as e:
         print(f"导入 Qwen3TTSModel 失败: {e}")
         print("\n请确认已安装官方包: pip install qwen-tts")
@@ -75,14 +93,19 @@ def main():
         "这是一个关于勇气与成长的故事。",
     ]
 
-    # CustomVoice 内置音色（官方 9 个预设音色，常见如 Vivian、Ono_Anna 等）
-    speakers = ["Vivian", "Ono_Anna"]
+    # CustomVoice 0.6B 内置中文音色（官方名称）
+    # Vivian: 明亮年轻女声
+    # Serena: 温柔年轻女声
+    # Uncle_Fu: 沉稳男声
+    # Dylan: 北京口音年轻男声
+    # Eric: 成都口音男声
+    speakers = ["Vivian", "Serena"]
 
     report = {
         "model": "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
         "model_dir": str(model_dir),
         "load_time_sec": f"{load_time:.2f}",
-        "device": str(next(model.model.parameters()).device) if hasattr(model, "model") else "unknown",
+        "device": device,
         "samples": [],
     }
 
@@ -141,4 +164,17 @@ def main():
 
 
 if __name__ == "__main__":
+    if not check_sox():
+        print("\n" + "=" * 60)
+        print("警告：未检测到 SoX，Qwen3-TTS 在 Windows 上需要 sox.exe")
+        print("=" * 60)
+        print("请按以下步骤安装：")
+        print("1. 下载 SoX Windows 版：")
+        print("   https://sourceforge.net/projects/sox/files/sox/14.4.2/sox-14.4.2-win32.exe")
+        print("2. 运行安装程序，记住安装目录（如 C:\\Program Files (x86)\\sox-14-4-2）")
+        print("3. 将该目录添加到系统环境变量 PATH")
+        print("4. 重新打开 PowerShell，执行: sox --version")
+        print("=" * 60 + "\n")
+        sys.exit(1)
+
     main()

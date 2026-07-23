@@ -62,7 +62,11 @@ def export_with_torch_onnx(model_dir: Path, output_dir: Path) -> bool:
             str(model_dir),
             dtype=torch.float32,
         )
-        model.eval()
+        # Qwen3TTSModel 是包装类，尝试对内部 nn.Module 切 eval 模式
+        if hasattr(model, "model") and hasattr(model.model, "eval"):
+            model.model.eval()
+        elif hasattr(model, "eval"):
+            model.eval()
     except Exception as e:
         print(f"加载模型失败: {e}")
         return False
