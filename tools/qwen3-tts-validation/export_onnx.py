@@ -46,9 +46,10 @@ def export_with_torch_onnx(model_dir: Path, output_dir: Path) -> bool:
     try:
         import torch
         import torch.onnx
-        from transformers import AutoModel
+        from qwen3_tts import Qwen3TTS
     except ImportError as e:
         print(f"缺少依赖: {e}")
+        print("请确认已安装官方包: pip install qwen-tts")
         return False
 
     print("\n使用 torch.onnx.export 作为回退方案导出...")
@@ -57,10 +58,9 @@ def export_with_torch_onnx(model_dir: Path, output_dir: Path) -> bool:
     # 加载模型
     print("加载模型（可能需要几分钟）...")
     try:
-        model = AutoModel.from_pretrained(
+        model = Qwen3TTS.from_pretrained(
             str(model_dir),
             torch_dtype=torch.float32,
-            trust_remote_code=True,
         )
         model.eval()
     except Exception as e:

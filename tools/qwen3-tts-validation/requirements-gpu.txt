@@ -3,8 +3,13 @@
 #   pip install torch --index-url https://download.pytorch.org/whl/cu121
 # 建议使用 Python 3.10+
 
+# Qwen3-TTS 官方 Python 包（包含模型定义和推理代码）
+qwen-tts>=0.1.1
+
+# transformers 版本必须固定，>=5.0 会破坏 Qwen3-TTS 兼容性
+transformers==4.57.3
+
 # 核心框架
-transformers>=4.46.0
 accelerate>=0.25.0
 sentencepiece>=0.1.99
 protobuf>=3.20.0

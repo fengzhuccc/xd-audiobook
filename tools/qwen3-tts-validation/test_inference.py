@@ -37,9 +37,9 @@ def main():
     start = time.time()
 
     try:
-        # Qwen3-TTS 推荐使用官方 AutoModel / pipeline 加载方式
-        # 这里兼容 transformers 通用写法
-        from transformers import AutoModel, AutoTokenizer
+        # Qwen3-TTS 必须使用官方 qwen-tts 包里的 Qwen3TTS 类加载
+        # AutoModel / transformers 通用写法无法识别 qwen3_tts 架构
+        from qwen3_tts import Qwen3TTS
 
         # 自动检测是否有独立显卡，无显卡时使用 CPU + float32
         if torch.cuda.is_available():
@@ -51,15 +51,17 @@ def main():
             torch_dtype = torch.float32
             print("未检测到 CUDA，使用 CPU 运行（速度较慢，但能正常工作）")
 
-        model = AutoModel.from_pretrained(
+        model = Qwen3TTS.from_pretrained(
             str(model_dir),
             torch_dtype=torch_dtype,
             device_map="auto" if device == "cuda" else None,
-            trust_remote_code=True,
         )
         if device == "cpu":
             model = model.to("cpu")
-        tokenizer = AutoTokenizer.from_pretrained(str(model_dir), trust_remote_code=True)
+    except ImportError as e:
+        print(f"导入 Qwen3TTS 失败: {e}")
+        print("\n请确认已安装官方包: pip install qwen-tts")
+        sys.exit(1)
     except Exception as e:
         print(f"模型加载失败: {e}")
         print("\n提示: 如果内存不足，可尝试添加 low_cpu_mem_usage=True")
@@ -74,8 +76,8 @@ def main():
         "这是一个关于勇气与成长的故事。",
     ]
 
-    # CustomVoice 内置音色（根据官方文档常见名称）
-    speakers = ["ryan", "xiaoyan", "xiaomei"]
+    # CustomVoice 内置音色（官方 9 个预设音色，名称可能需要根据实际模型调整）
+    speakers = ["Vivian", "Ono_Anna", "xiaoyan"]
 
     report = {
         "model": "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
@@ -93,22 +95,13 @@ def main():
         try:
             infer_start = time.time()
 
-            # Qwen3-TTS 通用推理接口（具体参数以官方 repo 为准）
-            # 如果官方提供了 pipeline，可以替换为 pipeline(...)
-            inputs = tokenizer(text, return_tensors="pt").to(model.device)
-            with torch.no_grad():
-                outputs = model.generate(
-                    **inputs,
-                    speaker=speaker,
-                    max_new_tokens=2048,
-                )
+            # Qwen3-TTS 基础生成接口
+            audio = model.generate(
+                text,
+                speaker=speaker,
+            )
 
-            # 不同模型返回格式可能不同：numpy array 或 tuple
-            if isinstance(outputs, tuple):
-                audio = outputs[0]
-            else:
-                audio = outputs
-
+            # 不同模型返回格式可能不同：numpy array 或 torch.Tensor
             if isinstance(audio, torch.Tensor):
                 audio = audio.cpu().float().numpy()
             if audio.ndim > 1:
