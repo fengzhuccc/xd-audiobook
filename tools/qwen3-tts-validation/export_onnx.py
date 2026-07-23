@@ -96,6 +96,8 @@ def export_with_torch_onnx(model_dir: Path, output_dir: Path) -> bool:
 
         print(f"导出 {name} -> {onnx_path}")
         try:
+            # 新版 PyTorch 默认 dynamo=True，不支持 dynamic_axes；
+            # 这里先使用传统 torchscript 导出器，占位输入即可跑通验证。
             torch.onnx.export(
                 module,
                 dummy_input,
@@ -104,6 +106,7 @@ def export_with_torch_onnx(model_dir: Path, output_dir: Path) -> bool:
                 output_names=["output"],
                 dynamic_axes={"input": {0: "batch"}, "output": {0: "batch"}},
                 opset_version=17,
+                dynamo=False,
             )
             print(f"  {name} 导出成功")
         except Exception as e:
