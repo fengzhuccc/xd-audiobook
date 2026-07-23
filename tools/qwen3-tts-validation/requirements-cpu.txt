@@ -20,6 +20,7 @@ librosa>=0.10.1
 
 # ONNX 导出与推理（CPU 版）
 onnx>=1.16.0
+onnxscript>=0.2.0
 onnxruntime>=1.18.0
 
 # 量化工具（可选）
