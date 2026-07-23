@@ -1,4 +1,4 @@
-# Qwen3-TTS 0.6B Windows 本地验证 - 一键运行脚本
+﻿# Qwen3-TTS 0.6B Windows 本地验证 - 一键运行脚本
 # 用法: .\run_all.ps1
 
 $ErrorActionPreference = "Stop"

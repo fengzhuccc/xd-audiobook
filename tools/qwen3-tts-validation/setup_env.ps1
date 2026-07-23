@@ -1,4 +1,4 @@
-# Qwen3-TTS 0.6B Windows 本地验证 - 环境初始化脚本
+﻿# Qwen3-TTS 0.6B Windows 本地验证 - 环境初始化脚本
 # 用法: .\setup_env.ps1
 
 $ErrorActionPreference = "Stop"
