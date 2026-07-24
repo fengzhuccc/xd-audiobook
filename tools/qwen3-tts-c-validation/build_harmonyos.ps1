@@ -1,4 +1,4 @@
-# PowerShell 脚本：交叉编译 Qwen3-TTS C 引擎到 HarmonyOS（aarch64）
+﻿# PowerShell 脚本：交叉编译 Qwen3-TTS C 引擎到 HarmonyOS（aarch64）
 # 适用于 Windows + DevEco Studio SDK 环境（原生 Windows，不需要 WSL2）
 # 编译产物: .\qwen3-tts-c-harmonyos\qwen_tts
 # 用法: .\build_harmonyos.ps1 [OHOS_SDK_HOME]
@@ -7,7 +7,7 @@ param(
     [string]$OhosSdkHome = ""
 )
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RepoDir = Join-Path $ScriptDir "qwen3-tts-c"
@@ -155,12 +155,14 @@ $env:PATH = "$sdkBinDir;$env:PATH"
 
 Push-Location $RepoDir
 
-# 清理之前的构建
-& $MakeCmd clean 2>$null
+# 清理之前的构建（忽略错误）
+Write-Host "清理之前的构建..."
+& $MakeCmd clean 2>&1 | Out-Null
+$global:LASTEXITCODE = 0
 
 # 交叉编译
 Write-Host "开始交叉编译 (make blas)..."
-& $MakeCmd CC="$CC" CXX="$CXX" CFLAGS="-O2" blas -j4
+& $MakeCmd "CC=$CC" "CXX=$CXX" "CFLAGS=-O2" blas -j4
 if ($LASTEXITCODE -ne 0) {
     Write-Host ""
     Write-Host "交叉编译失败。常见原因：" -ForegroundColor Red
