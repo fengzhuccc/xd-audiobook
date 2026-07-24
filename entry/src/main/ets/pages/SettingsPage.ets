@@ -5,7 +5,7 @@ import { READER_THEMES, READER_DEFAULTS, TTS_DEFAULTS, ReaderTheme } from '../co
 import { ReaderSettings } from '../common/model/ReaderSettings';
 import { TtsSettings } from '../common/model/TtsSettings';
 import { PreferencesService } from '../service/PreferencesService';
-import { TtsService, VoiceOption } from '../service/TtsService';
+import { TtsService, VoiceOption, TtsEngineType } from '../service/TtsService';
 import { LogUtil } from '../common/utils/LogUtil';
 
 interface OptionItem<T> {
@@ -32,9 +32,16 @@ export struct SettingsPage {
   @State ttsAutoNext: boolean = TTS_DEFAULTS.AUTO_NEXT_CHAPTER;
   @State ttsHighlight: boolean = TTS_DEFAULTS.HIGHLIGHT_ENABLED;
   @State ttsVoicePerson: number = TTS_DEFAULTS.VOICE_PERSON;
+  @State ttsEngineType: TtsEngineType = TTS_DEFAULTS.ENGINE_TYPE;
   @State voiceOptions: VoiceOption[] = [];
   @State voicePickerVisible: boolean = false;
   @State voicePickerLoading: boolean = false;
+
+  // 引擎选项
+  private engineOptions: OptionItem<TtsEngineType>[] = [
+    { label: '系统语音', value: 'system' },
+    { label: 'Qwen 本地语音', value: 'qwen' },
+  ];
 
   // 通用
   @State storageUsed: string = '计算中...';
@@ -76,6 +83,11 @@ export struct SettingsPage {
   }
 
   private async loadVoiceOptions(): Promise<void> {
+    if (this.ttsEngineType === 'qwen') {
+      this.voiceOptions = TtsService.getQwenVoiceOptions();
+      return;
+    }
+
     try {
       const context = this.getUIContext().getHostContext() as common.UIAbilityContext;
       const voices = await TtsService.getAvailableVoices(context);
@@ -103,6 +115,7 @@ export struct SettingsPage {
       this.ttsAutoNext = ttsSettings.autoNextChapter;
       this.ttsHighlight = ttsSettings.highlightEnabled;
       this.ttsVoicePerson = ttsSettings.voicePerson;
+      this.ttsEngineType = ttsSettings.engineType;
     } catch (err) {
       LogUtil.error(`Failed to load settings: ${JSON.stringify(err)}`);
     }
@@ -132,6 +145,7 @@ export struct SettingsPage {
       autoNextChapter: this.ttsAutoNext,
       highlightEnabled: this.ttsHighlight,
       voicePerson: this.ttsVoicePerson,
+      engineType: this.ttsEngineType,
     };
     await prefService.saveTtsSettings(settings);
   }
@@ -143,6 +157,10 @@ export struct SettingsPage {
 
   private async openVoicePicker(): Promise<void> {
     this.voicePickerVisible = true;
+    if (this.ttsEngineType === 'qwen') {
+      this.voiceOptions = TtsService.getQwenVoiceOptions();
+      return;
+    }
     if (this.voiceOptions.length > 0) {
       return;
     }
@@ -467,6 +485,47 @@ export struct SettingsPage {
               .letterSpacing(0.5)
               .width('100%')
               .padding({ left: 16, right: 16, top: 12, bottom: 4 })
+
+            // TTS 引擎选择
+            Column() {
+              Text('朗读引擎')
+                .fontSize(14)
+                .fontColor(AppTheme.textPrimary)
+                .width('100%')
+                .margin({ bottom: 8 })
+              Row({ space: 8 }) {
+                ForEach(this.engineOptions, (item: OptionItem<TtsEngineType>) => {
+                  Text(item.label)
+                    .fontSize(12)
+                    .fontWeight(FontWeight.Medium)
+                    .fontColor(this.ttsEngineType === item.value ? AppTheme.primary : AppTheme.textTertiary)
+                    .backgroundColor(this.ttsEngineType === item.value ? AppTheme.primaryLightest : AppTheme.surfaceInset)
+                    .border(this.ttsEngineType === item.value ?
+                      { width: 1.5, color: AppTheme.primary } :
+                      { width: 1, color: AppTheme.borderDefault })
+                    .borderRadius(4)
+                    .padding({ top: 6, bottom: 6 })
+                    .layoutWeight(1)
+                    .textAlign(TextAlign.Center)
+                    .onClick(() => {
+                      this.ttsEngineType = item.value;
+                      // 切换引擎后重置音色，避免用系统音色编号匹配 Qwen 音色
+                      if (item.value === 'qwen') {
+                        this.ttsVoicePerson = TtsService.getQwenVoiceOptions()[0]?.person ?? 0;
+                      } else {
+                        this.ttsVoicePerson = TTS_DEFAULTS.VOICE_PERSON;
+                      }
+                      this.loadVoiceOptions();
+                      this.saveTtsSettings();
+                    })
+                }, (item: OptionItem<TtsEngineType>) => item.value)
+              }
+              .width('100%')
+            }
+            .width('100%')
+            .padding(16)
+
+            Divider().color(AppTheme.borderSubtle).strokeWidth(1)
 
             // 语音
             Row() {

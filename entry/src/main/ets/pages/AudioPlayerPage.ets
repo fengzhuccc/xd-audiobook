@@ -145,7 +145,10 @@ struct AudioPlayerPage {
         context,
         bookInfo.bookTitle,
         bookInfo.bookCreator || '',
-        ttsSettings?.voicePerson
+        {
+          voicePerson: ttsSettings?.voicePerson,
+          engineType: ttsSettings?.engineType ?? 'system'
+        }
       );
       await this.ttsService.startReading(this.bookHandler, this.currentSpineIndex);
     } catch (err) {

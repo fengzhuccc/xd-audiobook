@@ -56,6 +56,7 @@ export interface TtsDefaults {
   AUTO_NEXT_CHAPTER: boolean;
   HIGHLIGHT_ENABLED: boolean;
   VOICE_PERSON: number;
+  ENGINE_TYPE: 'system' | 'qwen';
 }
 
 export const TTS_DEFAULTS: TtsDefaults = {
@@ -63,6 +64,7 @@ export const TTS_DEFAULTS: TtsDefaults = {
   AUTO_NEXT_CHAPTER: true,
   HIGHLIGHT_ENABLED: true,
   VOICE_PERSON: 0,
+  ENGINE_TYPE: 'system',
 };
 
 // 书架网格
