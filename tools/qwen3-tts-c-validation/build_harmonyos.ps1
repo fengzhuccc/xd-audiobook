@@ -94,23 +94,88 @@ foreach ($name in $compilerNames) {
     }
 }
 
+# 回退方案：如果没找到命名的 aarch64 编译器，检查是否有 clang.exe
+# DevEco Studio SDK 有时只提供 clang.exe，需要用 --target 参数指定目标平台
 if ([string]::IsNullOrEmpty($CC)) {
-    Write-Host "错误: 未找到 aarch64 编译器" -ForegroundColor Red
-    Write-Host "尝试过的路径:"
-    foreach ($name in $compilerNames) {
-        foreach ($ext in $compilerExts) {
-            Write-Host "  $(Join-Path $ToolchainDir "bin\$name$ext")"
-        }
-    }
-    Write-Host ""
-    Write-Host "bin 目录下的 aarch64 相关文件:" -ForegroundColor Yellow
     $binDir = Join-Path $ToolchainDir "bin"
-    if (Test-Path $binDir) {
-        Get-ChildItem $binDir -Filter "aarch64*" | ForEach-Object { Write-Host "  $($_.Name)" }
+    $clangExe = Join-Path $binDir "clang.exe"
+    $clangPpExe = Join-Path $binDir "clang++.exe"
+
+    if (Test-Path $clangExe) {
+        Write-Host "未找到命名的 aarch64 编译器，检测到 clang.exe，创建临时 wrapper..." -ForegroundColor Yellow
+
+        $tempWrapperDir = Join-Path $ScriptDir ".sdk_bin_wrappers"
+        New-Item -ItemType Directory -Path $tempWrapperDir -Force | Out-Null
+
+        # 构建 sysroot 参数（如果存在）
+        $sysrootDir = Join-Path $OhosSdkHome "native\sysroot"
+        $sysrootArg = ""
+        if (Test-Path $sysrootDir) {
+            $sysrootArg = " --sysroot=`"$sysrootDir`""
+        }
+
+        $targetArg = "--target=aarch64-linux-ohos"
+
+        # 创建 clang wrapper（.cmd 批处理）
+        $ccWrapperPath = Join-Path $tempWrapperDir "aarch64-unknown-linux-ohos-clang.cmd"
+        $ccLines = @(
+            '@echo off',
+            "`"$clangExe`" $targetArg$sysrootArg %*"
+        )
+        Set-Content -Path $ccWrapperPath -Value $ccLines -Encoding Default
+
+        # 创建 clang++ wrapper
+        $cxxWrapperPath = Join-Path $tempWrapperDir "aarch64-unknown-linux-ohos-clang++.cmd"
+        $cxxCompiler = if (Test-Path $clangPpExe) { $clangPpExe } else { $clangExe }
+        $cxxLines = @(
+            '@echo off',
+            "`"$cxxCompiler`" $targetArg$sysrootArg %*"
+        )
+        Set-Content -Path $cxxWrapperPath -Value $cxxLines -Encoding Default
+
+        $CC = $ccWrapperPath
+        $CXX = $cxxWrapperPath
+        $env:PATH = "$tempWrapperDir;$env:PATH"
+
+        Write-Host "  CC:      $CC" -ForegroundColor Green
+        Write-Host "  CXX:     $CXX" -ForegroundColor Green
+        if ($sysrootArg) {
+            Write-Host "  Sysroot: $sysrootDir" -ForegroundColor Green
+        }
+        Write-Host ""
     } else {
-        Write-Host "  bin 目录不存在: $binDir"
+        Write-Host "错误: 未找到 aarch64 编译器，且 bin 目录下没有 clang.exe" -ForegroundColor Red
+        Write-Host ""
+        Write-Host "尝试过的路径:" -ForegroundColor DarkGray
+        foreach ($name in $compilerNames) {
+            foreach ($ext in $compilerExts) {
+                Write-Host "  $(Join-Path $ToolchainDir "bin\$name$ext")" -ForegroundColor DarkGray
+            }
+        }
+        Write-Host ""
+        Write-Host "bin 目录 ($binDir) 下的相关文件:" -ForegroundColor Yellow
+        if (Test-Path $binDir) {
+            Write-Host "  [aarch64*]:" -ForegroundColor Cyan
+            $aarchFiles = Get-ChildItem $binDir -Filter "aarch64*" -ErrorAction SilentlyContinue
+            if ($aarchFiles) {
+                $aarchFiles | ForEach-Object { Write-Host "    $($_.Name)" }
+            } else {
+                Write-Host "    (无)"
+            }
+            Write-Host "  [clang*]:" -ForegroundColor Cyan
+            $clangFiles = Get-ChildItem $binDir -Filter "clang*" -ErrorAction SilentlyContinue
+            if ($clangFiles) {
+                $clangFiles | ForEach-Object { Write-Host "    $($_.Name)" }
+            } else {
+                Write-Host "    (无)"
+            }
+            Write-Host "  [全部 .exe 文件]:" -ForegroundColor Cyan
+            Get-ChildItem $binDir -Filter "*.exe" -ErrorAction SilentlyContinue | Select-Object -First 30 | ForEach-Object { Write-Host "    $($_.Name)" }
+        } else {
+            Write-Host "  bin 目录不存在: $binDir"
+        }
+        exit 1
     }
-    exit 1
 }
 
 # 查找 make 工具

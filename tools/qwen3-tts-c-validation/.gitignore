@@ -1,0 +1,19 @@
+# 克隆的源码和编译产物
+qwen3-tts-c/
+qwen3-tts-c-harmonyos/
+.sdk_bin_wrappers/
+
+# 模型文件
+models/
+outputs/
+logs/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# 编译产物
+*.o
+*.a
+qwen_tts
