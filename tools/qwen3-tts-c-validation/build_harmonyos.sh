@@ -30,20 +30,32 @@ if [ ! -d "$TOOLCHAIN_DIR" ]; then
     exit 1
 fi
 
-# 不同版本 SDK 的编译器命名可能不同，优先尝试 common 名称，再回退到 DevEco 实际名称
-CC="$TOOLCHAIN_DIR/bin/aarch64-linux-ohos-clang"
-CXX="$TOOLCHAIN_DIR/bin/aarch64-linux-ohos-clang++"
+# 不同版本 SDK 的编译器命名可能不同。
+# WSL2 访问 Windows SDK 时，编译器带 .exe 后缀。
+CC_CANDIDATES=(
+    "$TOOLCHAIN_DIR/bin/aarch64-linux-ohos-clang"
+    "$TOOLCHAIN_DIR/bin/aarch64-unknown-linux-ohos-clang"
+    "$TOOLCHAIN_DIR/bin/aarch64-linux-ohos-clang.exe"
+    "$TOOLCHAIN_DIR/bin/aarch64-unknown-linux-ohos-clang.exe"
+)
 
-if [ ! -f "$CC" ]; then
-    CC="$TOOLCHAIN_DIR/bin/aarch64-unknown-linux-ohos-clang"
-    CXX="$TOOLCHAIN_DIR/bin/aarch64-unknown-linux-ohos-clang++"
-fi
+CC=""
+CXX=""
+for candidate in "${CC_CANDIDATES[@]}"; do
+    if [ -f "$candidate" ]; then
+        CC="$candidate"
+        # 对应的 C++ 编译器
+        CXX="${candidate}++"
+        break
+    fi
+done
 
-if [ ! -f "$CC" ]; then
+if [ -z "$CC" ]; then
     echo "错误: 未找到编译器"
     echo "尝试过的路径:"
-    echo "  $TOOLCHAIN_DIR/bin/aarch64-linux-ohos-clang"
-    echo "  $TOOLCHAIN_DIR/bin/aarch64-unknown-linux-ohos-clang"
+    for candidate in "${CC_CANDIDATES[@]}"; do
+        echo "  $candidate"
+    done
     exit 1
 fi
 
@@ -65,8 +77,8 @@ make clean || true
 # 尝试用交叉编译器构建。
 # 注意：这里假设 C 引擎 Makefile 支持通过 CC/LDFLAGS 覆盖。
 # 如果 Makefile 写死了 gcc，需要先打补丁或改 Makefile。
-echo "开始交叉编译..."
-make CC="$CC" CXX="$CXX" CFLAGS="-static-libstdc++ -O2" LDFLAGS="-static-libstdc++" -j$(nproc) || {
+echo "开始交叉编译 (make blas)..."
+make CC="$CC" CXX="$CXX" CFLAGS="-O2" blas -j$(nproc) || {
     echo ""
     echo "交叉编译失败。常见原因："
     echo "1. C 引擎 Makefile 未使用传入的 CC/CXX，需要手动修改 Makefile"
