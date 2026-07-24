@@ -21,15 +21,33 @@ def check_sox():
     sox_path = shutil.which("sox")
     if sox_path:
         return True
+
+    import platform
+    system = platform.system()
+
     # Windows 上常见安装路径
+    if system == "Windows":
+        common_paths = [
+            r"C:\Program Files (x86)\sox-14-4-2\sox.exe",
+            r"C:\Program Files\sox-14-4-2\sox.exe",
+        ]
+        for p in common_paths:
+            if Path(p).exists():
+                os.environ["PATH"] = str(Path(p).parent) + os.pathsep + os.environ.get("PATH", "")
+                return True
+
+    # Linux/macOS 上常见路径
     common_paths = [
-        r"C:\Program Files (x86)\sox-14-4-2\sox.exe",
-        r"C:\Program Files\sox-14-4-2\sox.exe",
+        "/usr/bin/sox",
+        "/usr/local/bin/sox",
+        "/opt/homebrew/bin/sox",
+        "/usr/lib/sox/sox",
     ]
     for p in common_paths:
         if Path(p).exists():
             os.environ["PATH"] = str(Path(p).parent) + os.pathsep + os.environ.get("PATH", "")
             return True
+
     return False
 
 
@@ -165,15 +183,26 @@ def main():
 
 if __name__ == "__main__":
     if not check_sox():
+        import platform
+
         print("\n" + "=" * 60)
-        print("警告：未检测到 SoX，Qwen3-TTS 在 Windows 上需要 sox.exe")
+        print("警告：未检测到 SoX，Qwen3-TTS 需要 sox 命令")
         print("=" * 60)
-        print("请按以下步骤安装：")
-        print("1. 下载 SoX Windows 版：")
-        print("   https://sourceforge.net/projects/sox/files/sox/14.4.2/sox-14.4.2-win32.exe")
-        print("2. 运行安装程序，记住安装目录（如 C:\\Program Files (x86)\\sox-14-4-2）")
-        print("3. 将该目录添加到系统环境变量 PATH")
-        print("4. 重新打开 PowerShell，执行: sox --version")
+
+        if platform.system() == "Windows":
+            print("请按以下步骤安装：")
+            print("1. 下载 SoX Windows 版：")
+            print("   https://sourceforge.net/projects/sox/files/sox/14.4.2/sox-14.4.2-win32.exe")
+            print("2. 运行安装程序，记住安装目录（如 C:\\Program Files (x86)\\sox-14-4-2）")
+            print("3. 将该目录添加到系统环境变量 PATH")
+            print("4. 重新打开 PowerShell，执行: sox --version")
+        else:
+            print("请按以下步骤安装：")
+            print("  Ubuntu/Debian: sudo apt update && sudo apt install -y sox libsox-fmt-all")
+            print("  Fedora: sudo dnf install -y sox")
+            print("  macOS: brew install sox")
+            print("安装后执行: sox --version")
+
         print("=" * 60 + "\n")
         sys.exit(1)
 

@@ -59,6 +59,52 @@ python test_inference.py
 python export_onnx.py
 ```
 
+## Linux / WSL2 验证
+
+### 普通 Linux（Ubuntu 22.04 等）
+
+```bash
+# 一键运行（自动检测 GPU/CPU、安装依赖、下载模型、推理、导出 ONNX 尝试）
+./run_all_linux.sh
+```
+
+或分步执行：
+
+```bash
+# 1. 创建环境并安装依赖
+./setup_env_linux.sh
+
+# 2. 激活环境
+source .venv/bin/activate
+
+# 3. 下载模型
+python download_model.py
+
+# 4. 合成测试音频
+python test_inference.py
+
+# 5. 导出 ONNX（没有官方工具时会打印指引）
+python export_onnx.py
+```
+
+### WSL2 + NVIDIA GPU（导出官方 ONNX）
+
+如果你有一块 NVIDIA 显卡（如 RTX 4070 Ti Super，显存 >= 16GB），可以在 WSL2 中使用官方 `tensorrt-edgellm-export` 导出正确结构的 ONNX：
+
+```bash
+# 1. 安装 TensorRT-Edge-LLM 环境
+./setup_env_wsl_trt.sh
+
+# 2. 导出 ONNX
+./export_onnx_wsl.sh
+```
+
+导出完成后，建议把 ONNX 目录复制到 Windows 路径：
+
+```bash
+cp -r ./tensorrt-edgellm-workspace/Qwen3-TTS-12Hz-0.6B-CustomVoice/onnx /mnt/d/qwen3-tts-onnx
+```
+
 ## 输出目录
 
 ```
