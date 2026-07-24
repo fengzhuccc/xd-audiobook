@@ -1,5 +1,5 @@
 # PowerShell 脚本：交叉编译 Qwen3-TTS C 引擎到 HarmonyOS（aarch64）
-# 适用于 Windows + DevEco Studio SDK 环境
+# 适用于 Windows + DevEco Studio SDK 环境（原生 Windows，不需要 WSL2）
 # 编译产物: .\qwen3-tts-c-harmonyos\qwen_tts
 # 用法: .\build_harmonyos.ps1 [OHOS_SDK_HOME]
 
@@ -18,7 +18,6 @@ if ([string]::IsNullOrEmpty($OhosSdkHome)) {
     $OhosSdkHome = $env:OHOS_SDK_HOME
 }
 if ([string]::IsNullOrEmpty($OhosSdkHome)) {
-    # 常见默认路径
     $defaultPaths = @(
         "${env:DEVECO_SDK_HOME}",
         "$env:LOCALAPPDATA\Huawei\Sdk",
@@ -26,10 +25,8 @@ if ([string]::IsNullOrEmpty($OhosSdkHome)) {
     )
     foreach ($p in $defaultPaths) {
         if ($p -and (Test-Path $p)) {
-            # 找到 openharmony 子目录
             $ohSub = Join-Path $p "openharmony"
             if (Test-Path $ohSub) {
-                # 可能有多版本，取最新的
                 $versions = Get-ChildItem $ohSub -Directory | Sort-Object Name -Descending
                 if ($versions.Count -gt 0) {
                     $OhosSdkHome = $versions[0].FullName
@@ -71,7 +68,7 @@ $CC = ""
 $CXX = ""
 foreach ($name in $compilerNames) {
     $ccPath = Join-Path $ToolchainDir "bin\$name.exe"
-    $cxxPath = Join-Path $ToolchainDir "bin${name}++.exe"
+    $cxxPath = Join-Path $ToolchainDir "bin\$name++.exe"
     if (Test-Path $ccPath) {
         $CC = $ccPath
         $CXX = $cxxPath
@@ -89,18 +86,54 @@ if ([string]::IsNullOrEmpty($CC)) {
 }
 
 # 查找 make 工具
+# DevEco Studio SDK 自带 make.exe
 $MakeCmd = ""
-$makeCandidates = @(
-    "make",
+$makeSearchPaths = @(
     (Join-Path $OhosSdkHome "native\build-tools\bin\make.exe"),
-    "${env:DEVECO_STUDIO_HOME}\tools\ninja\ninja.exe"
+    (Join-Path $OhosSdkHome "build-tools\bin\make.exe")
 )
-# DevEco Studio 自带的 make 可能在 build-tools 下
-$devecoMake = Get-ChildItem -Path (Split-Path (Split-Path $OhosSdkHome)) -Recurse -Filter "make.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
-if ($devecoMake) {
-    $MakeCmd = $devecoMake.FullName
-} else {
-    $MakeCmd = "make"  # 假设系统 PATH 里有 make
+
+# 也搜索 DevEco Studio 安装目录下
+$devecoPaths = @(
+    "${env:DEVECO_STUDIO_HOME}",
+    "D:\software\DevEco Studio",
+    "C:\Program Files\Huawei\DevEco Studio"
+)
+
+foreach ($p in $makeSearchPaths) {
+    if (Test-Path $p) {
+        $MakeCmd = $p
+        break
+    }
+}
+
+if ([string]::IsNullOrEmpty($MakeCmd)) {
+    # 搜索 DevEco Studio 目录
+    foreach ($dp in $devecoPaths) {
+        if ($dp -and (Test-Path $dp)) {
+            $found = Get-ChildItem -Path $dp -Recurse -Filter "make.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($found) {
+                $MakeCmd = $found.FullName
+                break
+            }
+        }
+    }
+}
+
+if ([string]::IsNullOrEmpty($MakeCmd)) {
+    # 尝试系统 PATH 里的 make
+    $sysMake = Get-Command make -ErrorAction SilentlyContinue
+    if ($sysMake) {
+        $MakeCmd = $sysMake.Source
+    }
+}
+
+if ([string]::IsNullOrEmpty($MakeCmd)) {
+    Write-Host "错误: 未找到 make 工具" -ForegroundColor Red
+    Write-Host "请安装 make:"
+    Write-Host "  choco install make"
+    Write-Host "或手动从 DevEco Studio SDK 搜索 make.exe"
+    exit 1
 }
 
 Write-Host "========================================"
@@ -115,6 +148,10 @@ Write-Host ""
 if (-not (Test-Path $OutputDir)) {
     New-Item -ItemType Directory -Path $OutputDir | Out-Null
 }
+
+# 把 SDK bin 目录加到 PATH，让编译器 wrapper 能找到 clang.exe
+$sdkBinDir = Join-Path $ToolchainDir "bin"
+$env:PATH = "$sdkBinDir;$env:PATH"
 
 Push-Location $RepoDir
 

@@ -69,6 +69,26 @@ echo "输出目录: $OUTPUT_DIR"
 echo "CC:       $CC"
 echo ""
 
+# WSL2 访问 Windows SDK 时，aarch64-xxx-clang 是个 shell wrapper，
+# 内部会调用同目录的 clang，但 Windows SDK 里只有 clang.exe。
+# 解决：创建临时 symlink 目录，把 .exe 映射成不带后缀的名称。
+if [[ "$CC" == *.exe || "$CC" == */mnt/* ]]; then
+    echo "检测到 WSL2 + Windows SDK，创建 clang symlink..."
+    SDK_BIN_DIR="$(dirname "$CC")"
+    TEMP_BIN_DIR="$SCRIPT_DIR/.sdk_bin_wrappers"
+    mkdir -p "$TEMP_BIN_DIR"
+
+    # 为所有 .exe 创建不带后缀的 symlink
+    for exe in "$SDK_BIN_DIR"/*.exe; do
+        base=$(basename "$exe" .exe)
+        ln -sf "$exe" "$TEMP_BIN_DIR/$base"
+    done
+
+    # 把临时目录加到 PATH 前面，让 wrapper 能找到 clang
+    export PATH="$TEMP_BIN_DIR:$PATH"
+    echo "symlink 目录: $TEMP_BIN_DIR"
+fi
+
 cd "$REPO_DIR"
 
 # 清理之前的构建
