@@ -30,11 +30,20 @@ if [ ! -d "$TOOLCHAIN_DIR" ]; then
     exit 1
 fi
 
+# 不同版本 SDK 的编译器命名可能不同，优先尝试 common 名称，再回退到 DevEco 实际名称
 CC="$TOOLCHAIN_DIR/bin/aarch64-linux-ohos-clang"
 CXX="$TOOLCHAIN_DIR/bin/aarch64-linux-ohos-clang++"
 
 if [ ! -f "$CC" ]; then
-    echo "错误: 未找到编译器 $CC"
+    CC="$TOOLCHAIN_DIR/bin/aarch64-unknown-linux-ohos-clang"
+    CXX="$TOOLCHAIN_DIR/bin/aarch64-unknown-linux-ohos-clang++"
+fi
+
+if [ ! -f "$CC" ]; then
+    echo "错误: 未找到编译器"
+    echo "尝试过的路径:"
+    echo "  $TOOLCHAIN_DIR/bin/aarch64-linux-ohos-clang"
+    echo "  $TOOLCHAIN_DIR/bin/aarch64-unknown-linux-ohos-clang"
     exit 1
 fi
 
