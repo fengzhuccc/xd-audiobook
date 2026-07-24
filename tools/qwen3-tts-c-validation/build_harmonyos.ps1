@@ -59,19 +59,37 @@ if (-not (Test-Path $ToolchainDir)) {
     exit 1
 }
 
-# 查找编译器（Windows 版本带 .exe 后缀）
+# 查找编译器
+# Windows SDK 可能有 .exe / .cmd / 无后缀三种形式
 $compilerNames = @(
     "aarch64-unknown-linux-ohos-clang",
     "aarch64-linux-ohos-clang"
 )
+$compilerExts = @(".exe", ".cmd", "")
+
 $CC = ""
 $CXX = ""
 foreach ($name in $compilerNames) {
-    $ccPath = Join-Path $ToolchainDir "bin\$name.exe"
-    $cxxPath = Join-Path $ToolchainDir "bin\$name++.exe"
-    if (Test-Path $ccPath) {
-        $CC = $ccPath
-        $CXX = $cxxPath
+    foreach ($ext in $compilerExts) {
+        $ccPath = Join-Path $ToolchainDir "bin\$name$ext"
+        if (Test-Path $ccPath) {
+            $CC = $ccPath
+            # 对应的 C++ 编译器
+            $cxxName = "$name++"
+            foreach ($cxxExt in $compilerExts) {
+                $cxxCandidate = Join-Path $ToolchainDir "bin\$cxxName$cxxExt"
+                if (Test-Path $cxxCandidate) {
+                    $CXX = $cxxCandidate
+                    break
+                }
+            }
+            if ([string]::IsNullOrEmpty($CXX)) {
+                $CXX = $CC  # fallback
+            }
+            break
+        }
+    }
+    if (-not [string]::IsNullOrEmpty($CC)) {
         break
     }
 }
@@ -80,7 +98,17 @@ if ([string]::IsNullOrEmpty($CC)) {
     Write-Host "错误: 未找到 aarch64 编译器" -ForegroundColor Red
     Write-Host "尝试过的路径:"
     foreach ($name in $compilerNames) {
-        Write-Host "  $(Join-Path $ToolchainDir "bin\$name.exe")"
+        foreach ($ext in $compilerExts) {
+            Write-Host "  $(Join-Path $ToolchainDir "bin\$name$ext")"
+        }
+    }
+    Write-Host ""
+    Write-Host "bin 目录下的 aarch64 相关文件:" -ForegroundColor Yellow
+    $binDir = Join-Path $ToolchainDir "bin"
+    if (Test-Path $binDir) {
+        Get-ChildItem $binDir -Filter "aarch64*" | ForEach-Object { Write-Host "  $($_.Name)" }
+    } else {
+        Write-Host "  bin 目录不存在: $binDir"
     }
     exit 1
 }
