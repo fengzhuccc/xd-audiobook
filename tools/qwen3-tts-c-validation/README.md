@@ -36,7 +36,9 @@ WSL2 已经能满足验证需求，暂不单独提供原生脚本。
 | `setup_env.sh` | 安装编译依赖、克隆纯 C 引擎源码 |
 | `download_model.sh` | 下载 `Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice` 到 `models/` |
 | `build.sh` | 使用 `make blas` 编译出 `qwen_tts` 可执行文件 |
-| `run_inference.sh` | 运行一条中文推理，输出 WAV 并打印耗时 |
+| `run_inference.sh` | 运行一条中文推理（BF16），输出 WAV 并打印耗时 |
+| `run_inference_int8.sh` | 运行一条中文推理（INT8 量化），做效果/速度对比 |
+| `run_inference_int4.sh` | 运行一条中文推理（INT4 量化），做效果/速度对比 |
 | `run_server.sh` | 启动本地 HTTP 服务（可选） |
 
 ## 模型路径
@@ -60,6 +62,37 @@ ln -s ../qwen3-tts-validation/models/Qwen3-TTS-12Hz-0.6B-CustomVoice \
 2. **推理速度**：看脚本输出的 RTF（Real-Time Factor），RTF < 1 表示实时
 3. **内存占用**：0.6B BF16 模型约 1.2GB 内存
 4. **音色效果**：默认使用 `Serena` 中文音色，可在 `run_inference.sh` 中修改
+
+## 量化效果对比
+
+纯 C 引擎支持在加载时把 BF16 权重量化为 INT8 或 INT4，无需下载额外的量化模型：
+
+```bash
+# 原版 BF16
+./run_inference.sh
+
+# INT8 量化
+./run_inference_int8.sh
+
+# INT4 量化
+./run_inference_int4.sh
+```
+
+输出文件分别为：
+
+- `outputs/test_chinese.wav`（BF16）
+- `outputs/test_chinese_int8.wav`（INT8）
+- `outputs/test_chinese_int4.wav`（INT4）
+
+### 已知参考数据（Apple M1）
+
+| 配置 | 速度 | 质量 |
+|---|---|---|
+| BF16 | RTF ~1.26（长文本） | 最佳 |
+| INT8 | Talker 快约 15% | 基本无损 |
+| INT4 | 0.6B 上反而慢约 4% | 可能有轻微损失 |
+
+> 注：0.6B 模型权重较小，INT4 反量化开销可能抵消带宽收益，所以 INT8 通常是更好的折中。
 
 ## 下一步
 
